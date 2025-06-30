@@ -291,6 +291,21 @@ const PaymentDetailsModal: React.FC<{
             )}
           </div>
 
+          {/* ✅ NEW: Show failure message if payment failed */}
+          {payment.status === 'FAILED' && (payment as any).failure_message && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-red-900">Failure Reason</h4>
+                  <p className="mt-1 text-sm text-red-700">{(payment as any).failure_message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* URLs and Links - Special handling for links */}
           {((payment as any).payment_url || (payment as any).success_url || (payment as any).fail_url || (payment as any).qr_url) && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -59,6 +59,8 @@ export interface AdminPayment {
   // ✅ NEW: Chargeback specific fields
   chargebackAmount?: number;
   notes?: string;
+  // ✅ NEW: Failure message field
+  failure_message?: string;
 }
 
 export interface WebhookLog {

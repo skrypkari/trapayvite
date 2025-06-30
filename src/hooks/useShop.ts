@@ -30,7 +30,7 @@ export interface ShopProfile {
   };
 }
 
-// Payment Interface - ✅ UPDATED: Added PROCESSING status
+// Payment Interface - ✅ UPDATED: Added PROCESSING status and failure_message
 export interface ShopPayment {
   id: string;
   shopId: string;
@@ -44,6 +44,8 @@ export interface ShopPayment {
   customerEmail?: string;
   customerName?: string;
   webhookLogs?: WebhookLog[];
+  // ✅ NEW: Failure message field
+  failure_message?: string;
 }
 
 // ✅ UPDATED: Payout Interface to match new API structure
