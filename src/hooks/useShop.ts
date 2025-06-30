@@ -1,4 +1,7 @@
-// Shop Profile Interface - Updated to match API response
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '../lib/api';
+import { convertGatewayNamesToIds, convertGatewayIdsToNames, getGatewayNameFromId } from '../utils/gatewayMapping';
+
 export interface ShopProfile {
   id: string;
   name: string; // Mapped from fullName (Brand Name)
