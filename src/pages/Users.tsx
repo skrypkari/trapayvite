@@ -8,47 +8,47 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
-  Copy,
-  Check,
   Plus,
-  Lock,
-  Mail,
-  Calendar,
-  Link2,
-  RefreshCw,
-  ChevronDown,
-  Share2,
-  Trash2,
-  Edit3,
-  BarChart2,
-  Users as UsersIcon,
-  Globe,
-  MoreHorizontal,
   User as UserIcon,
   Building2,
+  Calendar,
+  Globe,
+  Mail,
+  Settings,
+  MoreHorizontal,
+  Edit3,
+  Trash2,
+  Shield,
+  Activity,
+  DollarSign,
   Percent,
   Timer,
   Wallet,
+  Copy,
+  Check,
   X
 } from 'lucide-react';
+import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
-  useUsers, 
+  useGetUsers, 
+  useUser, 
   useCreateUser, 
   useUpdateUser, 
   useDeleteUser,
   useSuspendUser,
   useActivateUser,
   type User,
+  type UserFilters,
   type AddUserFormData,
   type EditUserFormData,
-  type UserFilters,
+  type GatewaySettings,
   validateUserData
 } from '../hooks/useUsers';
-import { getGatewayInfo, getAllGatewayIds, GATEWAY_INFO } from '../utils/gatewayMapping';
+import { getGatewayInfo, GATEWAY_INFO, convertGatewayIdsToNames } from '../utils/gatewayMapping';
 
 const UserDetailsModal: React.FC<{
   user: User;
@@ -66,23 +66,26 @@ const UserDetailsModal: React.FC<{
     setTimeout(() => setShowCopied(null), 2000);
   };
 
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      onDelete(user.id);
-      onClose();
+  const handleAction = async (action: 'edit' | 'delete' | 'suspend' | 'activate') => {
+    switch (action) {
+      case 'edit':
+        onEdit(user);
+        break;
+      case 'delete':
+        if (window.confirm('Are you sure you want to delete this user?')) {
+          onDelete(user.id);
+        }
+        break;
+      case 'suspend':
+        if (window.confirm('Are you sure you want to suspend this user?')) {
+          onSuspend(user.id);
+        }
+        break;
+      case 'activate':
+        onActivate(user.id);
+        break;
     }
-  };
-
-  const handleSuspend = () => {
-    if (window.confirm('Are you sure you want to suspend this user?')) {
-      onSuspend(user.id);
-    }
-  };
-
-  const handleActivate = () => {
-    if (window.confirm('Are you sure you want to activate this user?')) {
-      onActivate(user.id);
-    }
+    onClose();
   };
 
   return (
@@ -108,8 +111,8 @@ const UserDetailsModal: React.FC<{
                 <UserIcon className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">User Details</h3>
-                <p className="text-sm text-gray-500">{user.name}</p>
+                <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
+                <p className="text-sm text-gray-500">@{user.username}</p>
               </div>
             </div>
             <button
@@ -122,9 +125,9 @@ const UserDetailsModal: React.FC<{
         </div>
 
         <div className="p-6 space-y-6">
-          {/* User Information */}
+          {/* Basic Information */}
           <div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">User Information</h4>
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Brand Name</div>
@@ -138,31 +141,7 @@ const UserDetailsModal: React.FC<{
 
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Telegram</div>
-                <div className="text-sm text-gray-900">{user.telegram || 'Not provided'}</div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Merchant URL</div>
-                <div className="flex items-center justify-between">
-                  <a
-                    href={user.shopUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:text-primary-dark break-all mr-2"
-                  >
-                    {user.shopUrl}
-                  </a>
-                  <button
-                    onClick={() => handleCopy(user.shopUrl, 'shop-url')}
-                    className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                  >
-                    {showCopied === 'shop-url' ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
+                <div className="text-sm text-gray-900">{user.telegram || 'Not set'}</div>
               </div>
 
               <div className="p-4 bg-gray-50 rounded-xl">
@@ -190,16 +169,23 @@ const UserDetailsModal: React.FC<{
               </div>
 
               <div className="p-4 bg-gray-50 rounded-xl">
+                <div className="text-sm font-medium text-gray-500 mb-1">Merchant URL</div>
+                <div className="text-sm text-gray-900 break-all">{user.shopUrl}</div>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
                 <div className="text-sm text-gray-900">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  {format(new Date(user.createdAt), 'PPpp')}
                 </div>
               </div>
 
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Public Key</div>
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-900 font-mono break-all mr-2">{user.publicKey}</div>
+                  <div className="text-sm text-gray-900 font-mono break-all mr-2">
+                    {user.publicKey.slice(0, 20)}...
+                  </div>
                   <button
                     onClick={() => handleCopy(user.publicKey, 'public-key')}
                     className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
@@ -215,76 +201,47 @@ const UserDetailsModal: React.FC<{
             </div>
           </div>
 
-          {/* Gateway Settings */}
+          {/* Payment Gateways */}
           <div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">Gateway Settings</h4>
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Payment Gateways</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {user.paymentGateways.map((gatewayId) => {
                 const gatewayInfo = getGatewayInfo(gatewayId);
                 const settings = user.gatewaySettings?.[gatewayId];
                 
                 return (
-                  <motion.div
-                    key={gatewayId}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="relative overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-br from-white to-gray-50"
-                  >
-                    {/* Gateway Header */}
-                    <div className={`p-4 ${gatewayInfo?.color || 'bg-gray-500'} text-white relative overflow-hidden`}>
-                      <div className="absolute inset-0 bg-black/10"></div>
-                      <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <h3 className="font-semibold">{gatewayInfo?.displayName || `Gateway ${gatewayId}`}</h3>
-                            <p className="text-sm opacity-90">{gatewayInfo?.description || gatewayId}</p>
-                          </div>
-                        </div>
+                  <div key={gatewayId} className="p-4 border border-gray-200 rounded-xl">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h5 className="font-medium text-gray-900">
+                          {gatewayInfo ? gatewayInfo.displayName : `Gateway ${gatewayId}`}
+                        </h5>
+                        <p className="text-sm text-gray-500">
+                          {gatewayInfo ? gatewayInfo.description : 'Payment gateway'}
+                        </p>
                       </div>
                     </div>
-
-                    {/* Gateway Settings */}
-                    <div className="p-4 space-y-3">
+                    
+                    {settings && (
                       <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-                          <div className="flex items-center justify-center mb-2">
+                        <div className="text-center p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center justify-center mb-1">
                             <Percent className="h-4 w-4 text-blue-600" />
                           </div>
-                          <div className="text-lg font-bold text-blue-900">
-                            {settings?.commission || 0}%
-                          </div>
+                          <div className="text-lg font-bold text-blue-900">{settings.commission}%</div>
                           <div className="text-xs text-blue-700">Commission</div>
                         </div>
                         
-                        <div className="text-center p-3 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl">
-                          <div className="flex items-center justify-center mb-2">
+                        <div className="text-center p-3 bg-orange-50 rounded-lg">
+                          <div className="flex items-center justify-center mb-1">
                             <Timer className="h-4 w-4 text-orange-600" />
                           </div>
-                          <div className="text-lg font-bold text-orange-900">
-                            T+{settings?.payoutDelay || 0}
-                          </div>
+                          <div className="text-lg font-bold text-orange-900">T+{settings.payoutDelay}</div>
                           <div className="text-xs text-orange-700">Payout</div>
                         </div>
                       </div>
-
-                      {/* Features */}
-                      {gatewayInfo?.features && (
-                        <div>
-                          <div className="text-xs font-medium text-gray-700 mb-2">Features</div>
-                          <div className="flex flex-wrap gap-1">
-                            {gatewayInfo.features.map((feature) => (
-                              <span
-                                key={feature}
-                                className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full"
-                              >
-                                {feature}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -338,10 +295,11 @@ const UserDetailsModal: React.FC<{
 
           {/* Actions */}
           <div className="border-t border-gray-200 pt-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Actions</h4>
             <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => onEdit(user)}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center space-x-2"
+                onClick={() => handleAction('edit')}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
               >
                 <Edit3 className="h-4 w-4" />
                 <span>Edit User</span>
@@ -349,16 +307,16 @@ const UserDetailsModal: React.FC<{
               
               {user.status === 'ACTIVE' ? (
                 <button
-                  onClick={handleSuspend}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 flex items-center space-x-2"
+                  onClick={() => handleAction('suspend')}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
                 >
-                  <Lock className="h-4 w-4" />
+                  <Shield className="h-4 w-4" />
                   <span>Suspend</span>
                 </button>
               ) : (
                 <button
-                  onClick={handleActivate}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2"
+                  onClick={() => handleAction('activate')}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   <span>Activate</span>
@@ -366,8 +324,8 @@ const UserDetailsModal: React.FC<{
               )}
               
               <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2"
+                onClick={() => handleAction('delete')}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
               >
                 <Trash2 className="h-4 w-4" />
                 <span>Delete</span>
@@ -383,16 +341,16 @@ const UserDetailsModal: React.FC<{
 const AddUserModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  editUser?: User | null;
-}> = ({ isOpen, onClose, editUser }) => {
-  const [formData, setFormData] = useState<EditUserFormData>({
-    name: '',
+  onSubmit: (data: AddUserFormData) => void;
+  isLoading: boolean;
+}> = ({ isOpen, onClose, onSubmit, isLoading }) => {
+  const [formData, setFormData] = useState<AddUserFormData>({
+    brandName: '',
     username: '',
     password: '',
-    telegram: '',
+    telegramId: '',
     merchantUrl: '',
-    paymentGateways: [],
-    status: 'ACTIVE',
+    gateways: [],
     gatewaySettings: {},
     wallets: {
       usdtPolygonWallet: '',
@@ -403,83 +361,33 @@ const AddUserModal: React.FC<{
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [selectedGateways, setSelectedGateways] = useState<string[]>([]);
 
-  const createUserMutation = useCreateUser();
-  const updateUserMutation = useUpdateUser();
-
-  // Initialize form data when editing
-  React.useEffect(() => {
-    if (editUser) {
-      setFormData({
-        name: editUser.name,
-        username: editUser.username,
-        password: '', // Don't pre-fill password
-        telegram: editUser.telegram,
-        merchantUrl: editUser.shopUrl,
-        paymentGateways: editUser.paymentGateways,
-        status: editUser.status,
-        gatewaySettings: editUser.gatewaySettings || {},
-        wallets: editUser.wallets || {
-          usdtPolygonWallet: '',
-          usdtTrcWallet: '',
-          usdtErcWallet: '',
-          usdcPolygonWallet: ''
-        }
-      });
-      setSelectedGateways(editUser.paymentGateways);
-    } else {
-      // Reset form for new user
-      setFormData({
-        name: '',
-        username: '',
-        password: '',
-        telegram: '',
-        merchantUrl: '',
-        paymentGateways: [],
-        status: 'ACTIVE',
-        gatewaySettings: {},
-        wallets: {
-          usdtPolygonWallet: '',
-          usdtTrcWallet: '',
-          usdtErcWallet: '',
-          usdcPolygonWallet: ''
-        }
-      });
-      setSelectedGateways([]);
-    }
-    setErrors({});
-  }, [editUser, isOpen]);
-
-  const availableGateways = getAllGatewayIds().map(id => ({
-    id,
-    info: getGatewayInfo(id)!
-  }));
+  const availableGateways = Object.values(GATEWAY_INFO);
 
   const handleGatewayToggle = (gatewayId: string) => {
-    const newGateways = selectedGateways.includes(gatewayId)
-      ? selectedGateways.filter(id => id !== gatewayId)
-      : [...selectedGateways, gatewayId];
-    
-    setSelectedGateways(newGateways);
-    setFormData(prev => ({
-      ...prev,
-      paymentGateways: newGateways
-    }));
-
-    // Initialize gateway settings for new gateways
-    if (!selectedGateways.includes(gatewayId)) {
-      setFormData(prev => ({
+    setFormData(prev => {
+      const isSelected = prev.gateways.includes(gatewayId);
+      const newGateways = isSelected 
+        ? prev.gateways.filter(id => id !== gatewayId)
+        : [...prev.gateways, gatewayId];
+      
+      // Update gateway settings
+      const newGatewaySettings = { ...prev.gatewaySettings };
+      if (isSelected) {
+        delete newGatewaySettings[gatewayId];
+      } else {
+        newGatewaySettings[gatewayId] = {
+          commission: 2.5,
+          payoutDelay: 7
+        };
+      }
+      
+      return {
         ...prev,
-        gatewaySettings: {
-          ...prev.gatewaySettings,
-          [gatewayId]: {
-            commission: 10,
-            payoutDelay: 5
-          }
-        }
-      }));
-    }
+        gateways: newGateways,
+        gatewaySettings: newGatewaySettings
+      };
+    });
   };
 
   const handleGatewaySettingChange = (gatewayId: string, field: 'commission' | 'payoutDelay', value: number) => {
@@ -495,11 +403,22 @@ const AddUserModal: React.FC<{
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
-    const validationErrors = validateUserData(formData);
+    const validationErrors = validateUserData({
+      name: formData.brandName,
+      username: formData.username,
+      password: formData.password,
+      telegram: formData.telegramId,
+      merchantUrl: formData.merchantUrl,
+      paymentGateways: formData.gateways,
+      status: 'ACTIVE',
+      gatewaySettings: formData.gatewaySettings,
+      wallets: formData.wallets
+    });
+    
     if (validationErrors.length > 0) {
       const errorMap: Record<string, string> = {};
       validationErrors.forEach(error => {
@@ -508,39 +427,30 @@ const AddUserModal: React.FC<{
       setErrors(errorMap);
       return;
     }
-
-    try {
-      if (editUser) {
-        // Update existing user
-        await updateUserMutation.mutateAsync({
-          id: editUser.id,
-          data: formData
-        });
-        toast.success('User updated successfully!');
-      } else {
-        // Create new user
-        const createData: AddUserFormData = {
-          brandName: formData.name,
-          username: formData.username,
-          password: formData.password!,
-          telegramId: formData.telegram,
-          merchantUrl: formData.merchantUrl,
-          gateways: formData.paymentGateways,
-          gatewaySettings: formData.gatewaySettings,
-          wallets: formData.wallets
-        };
-        
-        await createUserMutation.mutateAsync(createData);
-        toast.success('User created successfully!');
-      }
-      
-      onClose();
-    } catch (error: any) {
-      toast.error(error.message || `Failed to ${editUser ? 'update' : 'create'} user`);
-    }
+    
+    setErrors({});
+    onSubmit(formData);
   };
 
-  const isLoading = createUserMutation.isPending || updateUserMutation.isPending;
+  const handleClose = () => {
+    setFormData({
+      brandName: '',
+      username: '',
+      password: '',
+      telegramId: '',
+      merchantUrl: '',
+      gateways: [],
+      gatewaySettings: {},
+      wallets: {
+        usdtPolygonWallet: '',
+        usdtTrcWallet: '',
+        usdtErcWallet: '',
+        usdcPolygonWallet: ''
+      }
+    });
+    setErrors({});
+    onClose();
+  };
 
   return (
     <AnimatePresence>
@@ -551,7 +461,7 @@ const AddUserModal: React.FC<{
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
+            if (e.target === e.currentTarget) handleClose();
           }}
         >
           <motion.div
@@ -562,12 +472,10 @@ const AddUserModal: React.FC<{
           >
             <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {editUser ? 'Edit User' : 'Add New User'}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900">Add New User</h3>
                 <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={handleClose}
+                  className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -576,10 +484,9 @@ const AddUserModal: React.FC<{
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Basic Information */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2 mb-4">
-                  Basic Information
-                </h4>
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">Basic Information</h4>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -587,11 +494,9 @@ const AddUserModal: React.FC<{
                     </label>
                     <input
                       type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${
-                        errors.name ? 'border-red-300' : 'border-gray-300'
-                      } focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
+                      value={formData.brandName}
+                      onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
+                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.name ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
                       placeholder="Enter brand name"
                     />
                     {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
@@ -605,9 +510,7 @@ const AddUserModal: React.FC<{
                       type="text"
                       value={formData.username}
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${
-                        errors.username ? 'border-red-300' : 'border-gray-300'
-                      } focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
+                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.username ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
                       placeholder="Enter username"
                     />
                     {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
@@ -615,16 +518,14 @@ const AddUserModal: React.FC<{
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Password {editUser ? '(leave empty to keep current)' : '*'}
+                      Password *
                     </label>
                     <input
                       type="password"
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${
-                        errors.password ? 'border-red-300' : 'border-gray-300'
-                      } focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
-                      placeholder={editUser ? "Leave empty to keep current password" : "Enter password"}
+                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.password ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
+                      placeholder="Enter password"
                     />
                     {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
                   </div>
@@ -635,14 +536,11 @@ const AddUserModal: React.FC<{
                     </label>
                     <input
                       type="text"
-                      value={formData.telegram}
-                      onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${
-                        errors.telegram ? 'border-red-300' : 'border-gray-300'
-                      } focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
-                      placeholder="Enter Telegram ID"
+                      value={formData.telegramId}
+                      onChange={(e) => setFormData({ ...formData, telegramId: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                      placeholder="@username"
                     />
-                    {errors.telegram && <p className="mt-1 text-sm text-red-600">{errors.telegram}</p>}
                   </div>
 
                   <div className="md:col-span-2">
@@ -653,85 +551,36 @@ const AddUserModal: React.FC<{
                       type="url"
                       value={formData.merchantUrl}
                       onChange={(e) => setFormData({ ...formData, merchantUrl: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${
-                        errors.merchantUrl ? 'border-red-300' : 'border-gray-300'
-                      } focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
+                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.merchantUrl ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
                       placeholder="https://example.com"
                     />
                     {errors.merchantUrl && <p className="mt-1 text-sm text-red-600">{errors.merchantUrl}</p>}
                   </div>
-
-                  {editUser && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Status
-                      </label>
-                      <CustomSelect
-                        value={formData.status}
-                        onChange={(value) => setFormData({ ...formData, status: value as any })}
-                        options={[
-                          { value: 'ACTIVE', label: 'Active' },
-                          { value: 'SUSPENDED', label: 'Suspended' },
-                          { value: 'PENDING', label: 'Pending' }
-                        ]}
-                        placeholder="Select status"
-                      />
-                    </div>
-                  )}
                 </div>
               </div>
 
               {/* Payment Gateways */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2 mb-4">
-                  Payment Gateways *
-                </h4>
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">Payment Gateways</h4>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {availableGateways.map((gateway) => (
-                    <div
-                      key={gateway.id}
-                      className={`relative p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer ${
-                        selectedGateways.includes(gateway.id)
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                      }`}
-                      onClick={() => handleGatewayToggle(gateway.id)}
-                    >
-                      {selectedGateways.includes(gateway.id) && (
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-                          <CheckCircle2 className="w-4 h-4 text-white" />
+                    <div key={gateway.id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h5 className="font-medium text-gray-900">{gateway.displayName}</h5>
+                          <p className="text-sm text-gray-500">{gateway.description}</p>
                         </div>
-                      )}
-                      
-                      <div className="mb-3">
-                        <h3 className={`font-semibold text-sm mb-1 ${
-                          selectedGateways.includes(gateway.id) ? 'text-primary' : 'text-gray-900'
-                        }`}>
-                          {gateway.info.displayName}
-                        </h3>
-                        <p className="text-xs text-gray-500 mb-2">{gateway.info.description}</p>
+                        <input
+                          type="checkbox"
+                          checked={formData.gateways.includes(gateway.id)}
+                          onChange={() => handleGatewayToggle(gateway.id)}
+                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        />
                       </div>
                       
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-1">
-                          {gateway.info.features.map((feature) => (
-                            <span
-                              key={feature}
-                              className={`text-xs px-2 py-1 rounded-full ${
-                                selectedGateways.includes(gateway.id)
-                                  ? 'bg-primary/10 text-primary'
-                                  : 'bg-gray-200 text-gray-600'
-                              }`}
-                            >
-                              {feature}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Gateway Settings */}
-                      {selectedGateways.includes(gateway.id) && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3" onClick={(e) => e.stopPropagation()}>
+                      {formData.gateways.includes(gateway.id) && (
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
                               Commission (%)
@@ -741,15 +590,12 @@ const AddUserModal: React.FC<{
                               min="0"
                               max="100"
                               step="0.1"
-                              value={formData.gatewaySettings[gateway.id]?.commission || 10}
-                              onChange={(e) => handleGatewaySettingChange(
-                                gateway.id, 
-                                'commission', 
-                                parseFloat(e.target.value) || 0
-                              )}
+                              value={formData.gatewaySettings[gateway.id]?.commission || 0}
+                              onChange={(e) => handleGatewaySettingChange(gateway.id, 'commission', parseFloat(e.target.value))}
                               className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                             />
                           </div>
+                          
                           <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">
                               Payout Delay (days)
@@ -758,12 +604,8 @@ const AddUserModal: React.FC<{
                               type="number"
                               min="0"
                               max="365"
-                              value={formData.gatewaySettings[gateway.id]?.payoutDelay || 5}
-                              onChange={(e) => handleGatewaySettingChange(
-                                gateway.id, 
-                                'payoutDelay', 
-                                parseInt(e.target.value) || 0
-                              )}
+                              value={formData.gatewaySettings[gateway.id]?.payoutDelay || 0}
+                              onChange={(e) => handleGatewaySettingChange(gateway.id, 'payoutDelay', parseInt(e.target.value))}
                               className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
                             />
                           </div>
@@ -772,14 +614,13 @@ const AddUserModal: React.FC<{
                     </div>
                   ))}
                 </div>
-                {errors.paymentGateways && <p className="mt-1 text-sm text-red-600">{errors.paymentGateways}</p>}
+                {errors.paymentGateways && <p className="text-sm text-red-600">{errors.paymentGateways}</p>}
               </div>
 
-              {/* Wallet Settings */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2 mb-4">
-                  Crypto Wallets (Optional)
-                </h4>
+              {/* Crypto Wallets */}
+              <div className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">Crypto Wallets (Optional)</h4>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -788,8 +629,8 @@ const AddUserModal: React.FC<{
                     <input
                       type="text"
                       value={formData.wallets?.usdtPolygonWallet || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
                         wallets: { ...formData.wallets, usdtPolygonWallet: e.target.value }
                       })}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
@@ -804,8 +645,8 @@ const AddUserModal: React.FC<{
                     <input
                       type="text"
                       value={formData.wallets?.usdtTrcWallet || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
                         wallets: { ...formData.wallets, usdtTrcWallet: e.target.value }
                       })}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
@@ -820,8 +661,8 @@ const AddUserModal: React.FC<{
                     <input
                       type="text"
                       value={formData.wallets?.usdtErcWallet || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
                         wallets: { ...formData.wallets, usdtErcWallet: e.target.value }
                       })}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
@@ -836,8 +677,8 @@ const AddUserModal: React.FC<{
                     <input
                       type="text"
                       value={formData.wallets?.usdcPolygonWallet || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
                         wallets: { ...formData.wallets, usdcPolygonWallet: e.target.value }
                       })}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
@@ -847,10 +688,10 @@ const AddUserModal: React.FC<{
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
                   disabled={isLoading}
                 >
@@ -862,7 +703,7 @@ const AddUserModal: React.FC<{
                   className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {isLoading && <LoadingSpinner size="sm" />}
-                  <span>{isLoading ? (editUser ? 'Updating...' : 'Creating...') : (editUser ? 'Update User' : 'Create User')}</span>
+                  <span>{isLoading ? 'Creating...' : 'Create User'}</span>
                 </button>
               </div>
             </form>
@@ -874,11 +715,10 @@ const AddUserModal: React.FC<{
 };
 
 const Users: React.FC = () => {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editUser, setEditUser] = useState<User | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
 
@@ -896,10 +736,16 @@ const Users: React.FC = () => {
     return apiFilters;
   }, [currentPage, pageSize, statusFilter]);
 
-  const { data: usersData, isLoading, error } = useUsers(filters);
+  const { data: usersData, isLoading, error } = useGetUsers(filters);
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
   const suspendUserMutation = useSuspendUser();
   const activateUserMutation = useActivateUser();
+
+  console.log('🔍 Users data from hook:', usersData);
+  console.log('🔍 Is loading:', isLoading);
+  console.log('🔍 Error:', error);
 
   const statusOptions = [
     { value: 'all', label: 'All Status' },
@@ -922,9 +768,14 @@ const Users: React.FC = () => {
     );
   }, [usersData?.users, searchTerm]);
 
-  const handleEditUser = (user: User) => {
-    setEditUser(user);
-    setIsAddModalOpen(true);
+  const handleCreateUser = async (data: AddUserFormData) => {
+    try {
+      await createUserMutation.mutateAsync(data);
+      toast.success('User created successfully!');
+      setIsAddModalOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create user');
+    }
   };
 
   const handleDeleteUser = async (id: string) => {
@@ -954,9 +805,10 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleCloseModal = () => {
-    setIsAddModalOpen(false);
-    setEditUser(null);
+  const handleEditUser = (user: User) => {
+    // TODO: Implement edit user modal
+    console.log('Edit user:', user);
+    toast.info('Edit user functionality coming soon');
   };
 
   if (error) {
@@ -966,26 +818,34 @@ const Users: React.FC = () => {
           <AlertTriangle className="h-8 w-8 mx-auto" />
         </div>
         <p className="text-gray-600">Failed to load users. Please try again.</p>
+        <p className="text-sm text-gray-500 mt-2">Error: {error.message}</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Users</h1>
-        <button
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Users</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage platform users and their settings
+          </p>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={() => setIsAddModalOpen(true)}
-          className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark flex items-center space-x-2"
+          className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-200 w-full sm:w-auto justify-center"
         >
-          <Plus className="h-4 w-4" />
-          <span>Add User</span>
-        </button>
+          <Plus className="h-4 w-4 mr-2" />
+          Add User
+        </motion.button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="p-4 md:p-6 border-b border-gray-100">
+          <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -994,7 +854,7 @@ const Users: React.FC = () => {
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-200"
                 />
               </div>
             </div>
@@ -1004,6 +864,7 @@ const Users: React.FC = () => {
                 onChange={setStatusFilter}
                 options={statusOptions}
                 placeholder="Filter by status"
+                className="w-[180px]"
               />
             </div>
           </div>
@@ -1014,137 +875,111 @@ const Users: React.FC = () => {
             <LoadingSpinner size="lg" />
           </div>
         ) : (
-          <div>
-            <table className="w-full">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px]">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">User</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">Username</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">Gateways</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">Status</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">Created</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">Actions</th>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left px-6 py-4">
+                    <span className="text-sm font-medium text-gray-500">User</span>
+                  </th>
+                  <th className="text-left px-6 py-4">
+                    <span className="text-sm font-medium text-gray-500">Status</span>
+                  </th>
+                  <th className="text-left px-6 py-4">
+                    <span className="text-sm font-medium text-gray-500">Gateways</span>
+                  </th>
+                  <th className="text-left px-6 py-4">
+                    <span className="text-sm font-medium text-gray-500">Created</span>
+                  </th>
+                  <th className="text-right px-6 py-4"></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-4">
+                  <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                    <td className="px-6 py-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-medium text-primary">
-                            {user.name.charAt(0).toUpperCase()}
-                          </span>
+                          <UserIcon className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-sm text-gray-500">{user.telegram}</div>
+                          <div className="text-sm text-gray-500">@{user.username}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <span className="text-sm text-gray-900">@{user.username}</span>
+                    <td className="px-6 py-4">
+                      {user.status === 'ACTIVE' && (
+                        <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span className="text-sm font-medium">Active</span>
+                        </div>
+                      )}
+                      {user.status === 'SUSPENDED' && (
+                        <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg w-fit">
+                          <XCircle className="h-4 w-4" />
+                          <span className="text-sm font-medium">Suspended</span>
+                        </div>
+                      )}
+                      {user.status === 'PENDING' && (
+                        <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg w-fit">
+                          <Clock className="h-4 w-4" />
+                          <span className="text-sm font-medium">Pending</span>
+                        </div>
+                      )}
                     </td>
-                    <td className="p-4">
+                    <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
-                        {user.paymentGateways.slice(0, 2).map((gatewayId) => {
+                        {user.paymentGateways.slice(0, 3).map((gatewayId) => {
                           const gatewayInfo = getGatewayInfo(gatewayId);
                           return (
                             <span
                               key={gatewayId}
                               className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full"
                             >
-                              {gatewayInfo?.displayName.split(' - ')[0] || `Gateway ${gatewayId}`}
+                              {gatewayInfo ? gatewayInfo.name : gatewayId}
                             </span>
                           );
                         })}
-                        {user.paymentGateways.length > 2 && (
+                        {user.paymentGateways.length > 3 && (
                           <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
-                            +{user.paymentGateways.length - 2}
+                            +{user.paymentGateways.length - 3}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="p-4">
-                      <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-lg ${
-                        user.status === 'ACTIVE' ? 'bg-green-50 text-green-600' :
-                        user.status === 'SUSPENDED' ? 'bg-red-50 text-red-600' :
-                        'bg-yellow-50 text-yellow-600'
-                      }`}>
-                        {user.status === 'ACTIVE' && <CheckCircle2 className="h-4 w-4" />}
-                        {user.status === 'SUSPENDED' && <XCircle className="h-4 w-4" />}
-                        {user.status === 'PENDING' && <Clock className="h-4 w-4" />}
-                        <span className="text-sm font-medium">{user.status}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="text-sm text-gray-600">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-500">
+                        {format(new Date(user.createdAt), 'MMM d, yyyy')}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => setSelectedUser(user)}
-                          className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg"
+                          className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-all duration-200"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <div className="relative group">
-                          <button className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                          <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                            <button
-                              onClick={() => handleEditUser(user)}
-                              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                              <span>Edit</span>
-                            </button>
-                            {user.status === 'ACTIVE' ? (
-                              <button
-                                onClick={() => handleSuspendUser(user.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-yellow-600 hover:bg-yellow-50 flex items-center space-x-2"
-                              >
-                                <Lock className="h-4 w-4" />
-                                <span>Suspend</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleActivateUser(user.id)}
-                                className="w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50 flex items-center space-x-2"
-                              >
-                                <CheckCircle2 className="h-4 w-4" />
-                                <span>Activate</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                              <span>Delete</span>
-                            </button>
-                          </div>
-                        </div>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            
-            {/* Empty state */}
-            {!isLoading && filteredUsers.length === 0 && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <UsersIcon className="h-8 w-8 text-gray-400" />
-                </div>
-                <p className="text-gray-500 text-sm">No users found</p>
-                <p className="text-gray-400 text-xs mt-1">Create your first user to get started</p>
-              </div>
-            )}
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isLoading && filteredUsers.length === 0 && (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <UserIcon className="h-8 w-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500 text-sm">No users found</p>
+            <p className="text-gray-400 text-xs mt-1">
+              {searchTerm ? 'Try adjusting your search criteria' : 'Create your first user to get started'}
+            </p>
           </div>
         )}
 
@@ -1180,13 +1015,6 @@ const Users: React.FC = () => {
       </div>
 
       <AnimatePresence>
-        {isAddModalOpen && (
-          <AddUserModal
-            isOpen={isAddModalOpen}
-            onClose={handleCloseModal}
-            editUser={editUser}
-          />
-        )}
         {selectedUser && (
           <UserDetailsModal
             user={selectedUser}
@@ -1197,6 +1025,12 @@ const Users: React.FC = () => {
             onActivate={handleActivateUser}
           />
         )}
+        <AddUserModal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          onSubmit={handleCreateUser}
+          isLoading={createUserMutation.isPending}
+        />
       </AnimatePresence>
     </div>
   );
