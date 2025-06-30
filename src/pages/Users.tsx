@@ -24,7 +24,7 @@ import {
   Users as UsersIcon,
   Globe,
   MoreHorizontal,
-  User,
+  User as UserIcon,
   Building2,
   Percent,
   Timer,
@@ -105,7 +105,7 @@ const UserDetailsModal: React.FC<{
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary/10 rounded-xl">
-                <User className="h-5 w-5 text-primary" />
+                <UserIcon className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">User Details</h3>
