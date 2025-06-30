@@ -213,6 +213,52 @@ export interface AdminPayoutResponse {
   result: AdminPayout;
 }
 
+// ===== NEW: Merchant Statistics Types =====
+export interface MerchantStatistics {
+  totalTurnover: number;
+  merchantEarnings: number;
+  gatewayEarnings: number;
+  totalPaidOut: number;
+  averageCheck: number;
+  totalPayments: number;
+  successfulPayments: number;
+  conversionRate: number;
+  gatewayBreakdown: {
+    gateway: string;
+    gatewayDisplayName: string;
+    paymentsCount: number;
+    turnoverUSDT: number;
+    commissionUSDT: number;
+    merchantEarningsUSDT: number;
+    averageCommissionRate: number;
+  }[];
+  dailyData: {
+    date: string;
+    turnover: number;
+    merchantEarnings: number;
+    gatewayEarnings: number;
+    paymentsCount: number;
+  }[];
+  periodInfo: {
+    from: string;
+    to: string;
+    periodType: string;
+    daysCount: number;
+  };
+}
+
+export interface MerchantStatisticsFilters {
+  shopId: string;
+  period?: 'week' | 'month' | 'quarter' | 'year' | 'custom';
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface MerchantStatisticsResponse {
+  success: boolean;
+  result: MerchantStatistics;
+}
+
 // ===== QUERY KEYS =====
 
 export const adminKeys = {
@@ -229,6 +275,8 @@ export const adminKeys = {
   payoutMerchantsList: (filters?: AdminPayoutMerchantsFilters) => [...adminKeys.payoutMerchants(), 'list', filters] as const,
   payoutsList: (filters?: AdminPayoutFilters) => [...adminKeys.payouts(), 'list', filters] as const,
   payout: (id: string) => [...adminKeys.payouts(), 'detail', id] as const,
+  merchantStats: () => [...adminKeys.all, 'merchantStats'] as const,
+  merchantStatsList: (filters: MerchantStatisticsFilters) => [...adminKeys.merchantStats(), 'list', filters] as const,
 };
 
 // ===== ADMIN AUTH HOOKS =====
@@ -461,6 +509,39 @@ export function useDeleteAdminPayout() {
   });
 }
 
+// ===== NEW: MERCHANT STATISTICS HOOKS =====
+
+// Hook to get merchant statistics
+export function useAdminMerchantStatistics(filters: MerchantStatisticsFilters) {
+  return useQuery({
+    queryKey: adminKeys.merchantStatsList(filters),
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      
+      params.append('shopId', filters.shopId);
+      
+      if (filters.period) {
+        params.append('period', filters.period);
+      }
+      
+      if (filters.period === 'custom' && filters.dateFrom && filters.dateTo) {
+        params.append('dateFrom', filters.dateFrom);
+        params.append('dateTo', filters.dateTo);
+      }
+      
+      const queryString = params.toString();
+      const response = await api.get<MerchantStatisticsResponse>(
+        `/admin/merchant-statistics${queryString ? `?${queryString}` : ''}`
+      );
+      
+      return response.result;
+    },
+    enabled: !!filters.shopId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 10, // 10 minutes
+  });
+}
+
 // ===== MAIN ADMIN HOOK =====
 
 // Main hook that provides all admin functionality
@@ -487,6 +568,9 @@ export function useAdmin() {
     useCreatePayout: useCreateAdminPayout,
     useDeletePayout: useDeleteAdminPayout,
     
+    // Merchant Statistics
+    useMerchantStatistics: useAdminMerchantStatistics,
+    
     // Query keys for external use
     queryKeys: adminKeys,
   };
@@ -504,3 +588,4 @@ export { useAdminPayouts as useAdminPayoutsOnly };
 export { useAdminPayout as useAdminPayoutOnly };
 export { useCreateAdminPayout as useCreateAdminPayoutOnly };
 export { useDeleteAdminPayout as useDeleteAdminPayoutOnly };
+export { useAdminMerchantStatistics as useAdminMerchantStatisticsOnly };
