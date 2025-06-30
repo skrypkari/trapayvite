@@ -1,7 +1,3 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
-import { convertGatewayNamesToIds, convertGatewayIdsToNames } from '../utils/gatewayMapping';
-
 // Shop Profile Interface - Updated to match API response
 export interface ShopProfile {
   id: string;
@@ -30,7 +26,7 @@ export interface ShopProfile {
   };
 }
 
-// Payment Interface - ✅ UPDATED: Added PROCESSING status and failure_message
+// Payment Interface - ✅ UPDATED: Added PROCESSING status, failure_message and tx_urls
 export interface ShopPayment {
   id: string;
   shopId: string;
@@ -46,6 +42,8 @@ export interface ShopPayment {
   webhookLogs?: WebhookLog[];
   // ✅ NEW: Failure message field
   failure_message?: string;
+  // ✅ NEW: Transaction URLs field
+  tx_urls?: string[];
 }
 
 // ✅ UPDATED: Payout Interface to match new API structure

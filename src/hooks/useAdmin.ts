@@ -1,6 +1,3 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
-
 // ===== TYPES =====
 
 export interface AdminDashboardStats {
@@ -29,7 +26,7 @@ export interface AdminStatsResponse {
   result: AdminDashboardStats;
 }
 
-// Admin Payment Types - ✅ UPDATED: Added PROCESSING, CHARGEBACK and REFUND statuses
+// Admin Payment Types - ✅ UPDATED: Added PROCESSING, CHARGEBACK and REFUND statuses, failure_message and tx_urls
 export interface AdminPayment {
   id: string;
   shopId: string;
@@ -61,6 +58,8 @@ export interface AdminPayment {
   notes?: string;
   // ✅ NEW: Failure message field
   failure_message?: string;
+  // ✅ NEW: Transaction URLs field
+  tx_urls?: string[];
 }
 
 export interface WebhookLog {

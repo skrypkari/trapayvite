@@ -32,7 +32,8 @@ import {
   X,
   RotateCcw,
   AlertTriangle,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -138,6 +139,59 @@ const PaymentDetailsModal: React.FC<{
         </div>
 
         <div className="p-6 space-y-4">
+          {/* ✅ NEW: Show failure message if payment failed */}
+          {payment.status === 'FAILED' && (payment as any).failure_message && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-red-900">Failure Reason</h4>
+                  <p className="mt-1 text-sm text-red-700">{(payment as any).failure_message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ NEW: Show transaction URLs if available */}
+          {(payment as any).tx_urls && Array.isArray((payment as any).tx_urls) && (payment as any).tx_urls.length > 0 && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <ExternalLink className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Transaction URLs</h4>
+                  <div className="space-y-2">
+                    {(payment as any).tx_urls.map((url: string, index: number) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-700 hover:text-blue-800 break-all mr-2 underline"
+                        >
+                          {url}
+                        </a>
+                        <button
+                          onClick={() => handleCopy(url, `tx-url-${index}`)}
+                          className="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          {showCopied === `tx-url-${index}` ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* All fields in a single grid without section headers */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Basic Information */}
@@ -290,21 +344,6 @@ const PaymentDetailsModal: React.FC<{
               </div>
             )}
           </div>
-
-          {/* ✅ NEW: Show failure message if payment failed */}
-          {payment.status === 'FAILED' && (payment as any).failure_message && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-medium text-red-900">Failure Reason</h4>
-                  <p className="mt-1 text-sm text-red-700">{(payment as any).failure_message}</p>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* URLs and Links - Special handling for links */}
           {((payment as any).payment_url || (payment as any).success_url || (payment as any).fail_url || (payment as any).qr_url) && (
