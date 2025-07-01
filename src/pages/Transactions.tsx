@@ -292,6 +292,11 @@ const PaymentDetailsModal: React.FC<{
             {/* Customer Information */}
             {renderField('Customer Name', payment.customerName)}
             {renderField('Customer Email', payment.customerEmail, true, 'customer-email')}
+            
+            {/* ✅ NEW: Customer location and device info */}
+            {renderField('Customer Country', payment.customerCountry)}
+            {renderField('Customer IP', payment.customerIp, true, 'customer-ip')}
+            {renderField('Customer User Agent', payment.customerUa, true, 'customer-ua')}
           </div>
         </div>
       </motion.div>

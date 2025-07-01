@@ -385,6 +385,12 @@ const PaymentDetailsModal: React.FC<{
             {renderField('Source Currency', payment.sourceCurrency)}
             {renderField('Customer Name', payment.customerName)}
             {renderField('Customer Email', payment.customerEmail, true, 'customer-email')}
+            
+            {/* ✅ NEW: Customer location and device info */}
+            {renderField('Customer Country', payment.customerCountry)}
+            {renderField('Customer IP', payment.customerIp, true, 'customer-ip')}
+            {renderField('Customer User Agent', payment.customerUa, true, 'customer-ua')}
+            
             {renderField('Payment Method', payment.paymentMethod)}
             {renderField('Card Last 4', payment.cardLast4)}
             {renderField('Bank ID', payment.bankId)}
@@ -624,7 +630,7 @@ const AdminPayments: React.FC = () => {
               </div>
 
               {/* Filter dropdowns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <CustomSelect
                   value={statusFilter}
                   onChange={setStatusFilter}
