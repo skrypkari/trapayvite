@@ -134,11 +134,15 @@ export interface UpdatePaymentStatusData {
 
 // ===== NEW: PAYOUT TYPES =====
 
+// ✅ FIXED: Updated AdminPayoutStats to match actual API response
 export interface AdminPayoutStats {
-  totalPayout: number;
-  awaitingPayout: number;
-  thisMonth: number;
-  availableBalance: number;
+  totalPayouts: number;
+  completedPayouts: number;
+  pendingPayouts: number;
+  rejectedPayouts: number;
+  totalAmount: number;
+  completedAmount: number;
+  pendingAmount: number;
 }
 
 export interface AdminPayoutMerchant {
@@ -438,13 +442,29 @@ export function useUpdatePaymentStatus() {
 
 // ===== ADMIN PAYOUT HOOKS =====
 
-// Hook to get admin payout statistics
+// ✅ FIXED: Hook to get admin payout statistics with proper error handling
 export function useAdminPayoutStats() {
   return useQuery({
     queryKey: adminKeys.payoutStats(),
     queryFn: async () => {
       const response = await api.get<{ success: boolean; result: AdminPayoutStats }>('/admin/payout/stats');
-      return response.result;
+      
+      // ✅ FIXED: Provide default values for missing fields
+      const stats = response.result;
+      return {
+        totalPayout: stats.totalAmount || 0,
+        awaitingPayout: stats.pendingAmount || 0,
+        thisMonth: stats.completedAmount || 0,
+        availableBalance: stats.totalAmount || 0,
+        // Additional fields from API
+        totalPayouts: stats.totalPayouts || 0,
+        completedPayouts: stats.completedPayouts || 0,
+        pendingPayouts: stats.pendingPayouts || 0,
+        rejectedPayouts: stats.rejectedPayouts || 0,
+        totalAmount: stats.totalAmount || 0,
+        completedAmount: stats.completedAmount || 0,
+        pendingAmount: stats.pendingAmount || 0,
+      };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
