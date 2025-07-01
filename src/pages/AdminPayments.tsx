@@ -158,7 +158,7 @@ const PaymentDetailsModal: React.FC<{
 
         <div className="p-6 space-y-6">
           {/* ✅ NEW: Show failure message if payment failed */}
-          {payment.status === 'FAILED' && payment.failure_message && (
+          {payment.status === 'FAILED' && payment.failureMessage && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -170,14 +170,14 @@ const PaymentDetailsModal: React.FC<{
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-red-900">Failure Reason</h4>
-                  <p className="mt-1 text-sm text-red-700">{payment.failure_message}</p>
+                  <p className="mt-1 text-sm text-red-700">{payment.failureMessage}</p>
                 </div>
               </div>
             </motion.div>
           )}
 
           {/* ✅ NEW: Show transaction URLs if available */}
-          {payment.tx_urls && Array.isArray(payment.tx_urls) && payment.tx_urls.length > 0 && (
+          {payment.txUrls && Array.isArray(payment.txUrls) && payment.txUrls.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -190,7 +190,7 @@ const PaymentDetailsModal: React.FC<{
                 <div className="flex-1">
                   <h4 className="text-sm font-medium text-blue-900 mb-2">Transaction URLs</h4>
                   <div className="space-y-2">
-                    {payment.tx_urls.map((url: string, index: number) => (
+                    {payment.txUrls.map((url: string, index: number) => (
                       <div key={index} className="flex items-center justify-between bg-white rounded-lg p-2">
                         <a
                           href={url}

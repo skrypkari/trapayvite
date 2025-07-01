@@ -86,8 +86,8 @@ export interface AdminPayment {
   chargebackAmount?: number;
   notes?: string;
   // ✅ NEW: Failure message and transaction URLs
-  failure_message?: string;
-  tx_urls?: string[];
+  failureMessage?: string;
+  txUrls?: string[];
 }
 
 export interface WebhookLog {
