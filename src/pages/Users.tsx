@@ -37,6 +37,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import Chart from 'react-apexcharts';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
   useGetUsers, 
@@ -54,9 +55,8 @@ import {
   validateUserData
 } from '../hooks/useUsers';
 import { 
-  useAdminMerchantStatistics,
-  type MerchantStatistics,
-  type MerchantStatisticsFilters
+  useAdmin,
+  type MerchantStatisticsFilters 
 } from '../hooks/useAdmin';
 import { getGatewayInfo, GATEWAY_INFO, convertGatewayIdsToNames } from '../utils/gatewayMapping';
 
@@ -64,28 +64,41 @@ const MerchantAnalyticsModal: React.FC<{
   user: User;
   onClose: () => void;
 }> = ({ user, onClose }) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'week' | 'year' | 'all'>('month');
-  const [customDateRange, setCustomDateRange] = useState<{
-    dateFrom?: string;
-    dateTo?: string;
-  }>({});
+  const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
+  const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
 
-  const filters: MerchantStatisticsFilters = {
-    shopId: user.id,
-    period: selectedPeriod,
-    ...customDateRange
-  };
+  const { useMerchantStatistics } = useAdmin();
 
-  const { data: stats, isLoading, error } = useAdminMerchantStatistics(filters);
+  // Build filters for API
+  const filters: MerchantStatisticsFilters = useMemo(() => {
+    const baseFilters: MerchantStatisticsFilters = {
+      shopId: user.id,
+      period: selectedPeriod as any
+    };
+
+    // Add custom date range if period is custom
+    if (selectedPeriod === 'custom' && startDate && endDate) {
+      baseFilters.dateFrom = startDate.toISOString();
+      baseFilters.dateTo = endDate.toISOString();
+    }
+
+    return baseFilters;
+  }, [user.id, selectedPeriod, startDate, endDate]);
+
+  const { data: statistics, isLoading, error } = useMerchantStatistics(filters);
 
   const periodOptions = [
     { value: 'month', label: 'This Month' },
     { value: 'week', label: 'This Week' },
     { value: 'year', label: 'This Year' },
-    { value: 'all', label: 'All Time' }
+    { value: 'all', label: 'All Time' },
+    { value: 'custom', label: 'Custom Range' }
   ];
 
-  // Chart configuration for daily data
+  // Chart configuration for revenue analytics
   const chartOptions = {
     chart: {
       type: 'area',
@@ -111,7 +124,7 @@ const MerchantAnalyticsModal: React.FC<{
       }
     },
     xaxis: {
-      categories: stats?.dailyData?.map(item => 
+      categories: statistics?.dailyData?.map(item => 
         format(new Date(item.date), 'MMM d')
       ) || [],
       axisBorder: {
@@ -141,7 +154,8 @@ const MerchantAnalyticsModal: React.FC<{
     },
     legend: {
       show: true,
-      position: 'top'
+      position: 'top',
+      horizontalAlign: 'right'
     },
     responsive: [{
       breakpoint: 480,
@@ -156,17 +170,20 @@ const MerchantAnalyticsModal: React.FC<{
   const series = [
     {
       name: 'Total Turnover',
-      data: stats?.dailyData?.map(item => item.turnover) || []
+      data: statistics?.dailyData?.map(item => item.turnover) || []
     },
     {
       name: 'Merchant Earnings',
-      data: stats?.dailyData?.map(item => item.merchantEarnings) || []
+      data: statistics?.dailyData?.map(item => item.merchantEarnings) || []
     },
     {
       name: 'Gateway Earnings',
-      data: stats?.dailyData?.map(item => item.gatewayEarnings) || []
+      data: statistics?.dailyData?.map(item => item.gatewayEarnings) || []
     }
   ];
+
+  // Check if custom period is selected and dates are required
+  const isCustomPeriodValid = selectedPeriod !== 'custom' || (startDate && endDate);
 
   return (
     <motion.div
@@ -196,13 +213,71 @@ const MerchantAnalyticsModal: React.FC<{
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <CustomSelect
-                value={selectedPeriod}
-                onChange={(value) => setSelectedPeriod(value as any)}
-                options={periodOptions}
-                placeholder="Select period"
-                className="w-[150px]"
-              />
+              <div className="flex items-center space-x-3">
+                <CustomSelect
+                  value={selectedPeriod}
+                  onChange={setSelectedPeriod}
+                  options={periodOptions}
+                  placeholder="Select period"
+                  className="w-[180px]"
+                />
+                
+                {/* Custom Date Range Pickers */}
+                {selectedPeriod === 'custom' && (
+                  <div className="flex items-center space-x-2">
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsStartDatePickerOpen(true)}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-left flex items-center space-x-2 hover:border-primary transition-all duration-200 text-sm"
+                      >
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
+                          {startDate ? format(startDate, 'MMM d, yyyy') : 'Start date'}
+                        </span>
+                      </button>
+                      <AnimatePresence>
+                        {isStartDatePickerOpen && (
+                          <DatePicker
+                            value={startDate}
+                            onChange={(date) => {
+                              setStartDate(date);
+                              setIsStartDatePickerOpen(false);
+                            }}
+                            onClose={() => setIsStartDatePickerOpen(false)}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    
+                    <span className="text-gray-400">to</span>
+                    
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsEndDatePickerOpen(true)}
+                        className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-left flex items-center space-x-2 hover:border-primary transition-all duration-200 text-sm"
+                      >
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
+                          {endDate ? format(endDate, 'MMM d, yyyy') : 'End date'}
+                        </span>
+                      </button>
+                      <AnimatePresence>
+                        {isEndDatePickerOpen && (
+                          <DatePicker
+                            value={endDate}
+                            onChange={(date) => {
+                              setEndDate(date);
+                              setIsEndDatePickerOpen(false);
+                            }}
+                            onClose={() => setIsEndDatePickerOpen(false)}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
@@ -214,6 +289,19 @@ const MerchantAnalyticsModal: React.FC<{
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Show message if custom period is selected but dates are not set */}
+          {selectedPeriod === 'custom' && !isCustomPeriodValid && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <div className="flex items-center space-x-3">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                <div>
+                  <h4 className="text-sm font-medium text-blue-900">Select Date Range</h4>
+                  <p className="text-sm text-blue-700">Please select both start and end dates to view custom period analytics.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner size="lg" />
@@ -221,11 +309,11 @@ const MerchantAnalyticsModal: React.FC<{
           ) : error ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="h-8 w-8 text-red-600" />
+                <AlertTriangle className="h-8 w-8 text-red-400" />
               </div>
-              <p className="text-red-600 text-sm">Failed to load merchant analytics</p>
+              <p className="text-red-500 text-sm">Failed to load merchant statistics</p>
             </div>
-          ) : stats ? (
+          ) : !isCustomPeriodValid ? null : statistics ? (
             <>
               {/* Overview Statistics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -240,7 +328,7 @@ const MerchantAnalyticsModal: React.FC<{
                     <div>
                       <p className="text-sm text-gray-500">Total Turnover</p>
                       <p className="text-xl font-semibold text-gray-900">
-                        {stats.totalTurnover.toLocaleString()} USDT
+                        {statistics.totalTurnover.toLocaleString()} USDT
                       </p>
                     </div>
                   </div>
@@ -252,12 +340,12 @@ const MerchantAnalyticsModal: React.FC<{
                 >
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-blue-50 rounded-xl">
-                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      <Wallet className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Merchant Earnings</p>
                       <p className="text-xl font-semibold text-gray-900">
-                        {stats.merchantEarnings.toLocaleString()} USDT
+                        {statistics.merchantEarnings.toLocaleString()} USDT
                       </p>
                     </div>
                   </div>
@@ -274,7 +362,7 @@ const MerchantAnalyticsModal: React.FC<{
                     <div>
                       <p className="text-sm text-gray-500">Total Payments</p>
                       <p className="text-xl font-semibold text-gray-900">
-                        {stats.totalPayments.toLocaleString()}
+                        {statistics.totalPayments.toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -286,12 +374,12 @@ const MerchantAnalyticsModal: React.FC<{
                 >
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-orange-50 rounded-xl">
-                      <CheckCircle2 className="h-5 w-5 text-orange-600" />
+                      <TrendingUp className="h-5 w-5 text-orange-600" />
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Conversion Rate</p>
                       <p className="text-xl font-semibold text-gray-900">
-                        {stats.conversionRate.toFixed(1)}%
+                        {statistics.conversionRate.toFixed(1)}%
                       </p>
                     </div>
                   </div>
@@ -301,13 +389,9 @@ const MerchantAnalyticsModal: React.FC<{
               {/* Revenue Chart */}
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-6">
-                  <h4 className="text-lg font-semibold text-gray-900">Revenue Trends</h4>
-                  <div className="text-sm text-gray-500">
-                    {stats.periodInfo.from && stats.periodInfo.to && (
-                      <>
-                        {format(new Date(stats.periodInfo.from), 'MMM d, yyyy')} - {format(new Date(stats.periodInfo.to), 'MMM d, yyyy')}
-                      </>
-                    )}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Revenue Analytics</h3>
+                    <p className="text-sm text-gray-500">Daily breakdown of earnings and turnover</p>
                   </div>
                 </div>
                 <div className="h-64">
@@ -320,20 +404,20 @@ const MerchantAnalyticsModal: React.FC<{
                 </div>
               </div>
 
-              {/* Gateway Breakdown */}
+              {/* Gateway Performance */}
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">Gateway Performance</h4>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Gateway Performance</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {stats.gatewayBreakdown.map((gateway, index) => (
+                  {statistics.gatewayBreakdown.map((gateway, index) => (
                     <div key={index} className="p-4 border border-gray-200 rounded-xl">
                       <div className="flex items-center justify-between mb-3">
                         <div>
-                          <h5 className="font-medium text-gray-900">{gateway.gatewayDisplayName}</h5>
+                          <h4 className="font-medium text-gray-900">{gateway.gatewayDisplayName}</h4>
                           <p className="text-sm text-gray-500">{gateway.paymentsCount} payments</p>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3 text-sm">
                         <div className="text-center p-3 bg-blue-50 rounded-lg">
                           <div className="text-lg font-bold text-blue-900">
                             {gateway.turnoverUSDT.toLocaleString()}
@@ -347,11 +431,12 @@ const MerchantAnalyticsModal: React.FC<{
                           </div>
                           <div className="text-xs text-green-700">Earnings USDT</div>
                         </div>
-                      </div>
-
-                      <div className="mt-3 text-center p-2 bg-gray-50 rounded-lg">
-                        <div className="text-sm font-medium text-gray-900">
-                          Commission: {gateway.averageCommissionRate}%
+                        
+                        <div className="text-center p-3 bg-orange-50 rounded-lg">
+                          <div className="text-lg font-bold text-orange-900">
+                            {gateway.averageCommissionRate}%
+                          </div>
+                          <div className="text-xs text-orange-700">Commission</div>
                         </div>
                       </div>
                     </div>
@@ -363,45 +448,22 @@ const MerchantAnalyticsModal: React.FC<{
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div className="p-2 bg-yellow-50 rounded-xl">
-                      <ArrowDownLeft className="h-5 w-5 text-yellow-600" />
+                    <div className="p-2 bg-green-50 rounded-xl">
+                      <ArrowDownLeft className="h-5 w-5 text-green-600" />
                     </div>
-                    <h4 className="text-lg font-semibold text-gray-900">Payouts</h4>
+                    <h3 className="text-lg font-semibold text-gray-900">Payouts</h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Total Paid Out:</span>
+                      <span className="text-sm text-gray-500">Total Paid Out</span>
                       <span className="text-sm font-medium text-gray-900">
-                        {stats.totalPaidOut.toLocaleString()} USDT
+                        {statistics.totalPaidOut.toLocaleString()} USDT
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Pending:</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {(stats.merchantEarnings - stats.totalPaidOut).toLocaleString()} USDT
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="p-2 bg-indigo-50 rounded-xl">
-                      <Activity className="h-5 w-5 text-indigo-600" />
-                    </div>
-                    <h4 className="text-lg font-semibold text-gray-900">Performance</h4>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Average Check:</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {stats.averageCheck.toFixed(2)} USDT
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Success Rate:</span>
-                      <span className="text-sm font-medium text-gray-900">
-                        {((stats.successfulPayments / stats.totalPayments) * 100).toFixed(1)}%
+                      <span className="text-sm text-gray-500">Pending Payout</span>
+                      <span className="text-sm font-medium text-orange-600">
+                        {(statistics.merchantEarnings - statistics.totalPaidOut).toLocaleString()} USDT
                       </span>
                     </div>
                   </div>
@@ -409,28 +471,78 @@ const MerchantAnalyticsModal: React.FC<{
 
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div className="p-2 bg-red-50 rounded-xl">
-                      <Percent className="h-5 w-5 text-red-600" />
+                    <div className="p-2 bg-blue-50 rounded-xl">
+                      <Activity className="h-5 w-5 text-blue-600" />
                     </div>
-                    <h4 className="text-lg font-semibold text-gray-900">Commissions</h4>
+                    <h3 className="text-lg font-semibold text-gray-900">Performance</h3>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Gateway Earnings:</span>
+                      <span className="text-sm text-gray-500">Average Check</span>
                       <span className="text-sm font-medium text-gray-900">
-                        {stats.gatewayEarnings.toLocaleString()} USDT
+                        {statistics.averageCheck.toFixed(2)} USDT
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Avg Commission:</span>
+                      <span className="text-sm text-gray-500">Success Rate</span>
+                      <span className="text-sm font-medium text-green-600">
+                        {((statistics.successfulPayments / statistics.totalPayments) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-purple-50 rounded-xl">
+                      <Percent className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900">Commissions</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Gateway Earnings</span>
                       <span className="text-sm font-medium text-gray-900">
-                        {((stats.gatewayEarnings / stats.totalTurnover) * 100).toFixed(1)}%
+                        {statistics.gatewayEarnings.toLocaleString()} USDT
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Avg Commission</span>
+                      <span className="text-sm font-medium text-purple-600">
+                        {((statistics.gatewayEarnings / statistics.totalTurnover) * 100).toFixed(1)}%
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Period Information */}
+              {statistics.periodInfo && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-gray-500">Period:</span>
+                      <span className="font-medium text-gray-900">
+                        {format(new Date(statistics.periodInfo.from), 'MMM d, yyyy')} - {format(new Date(statistics.periodInfo.to), 'MMM d, yyyy')}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <span className="text-gray-500">Duration:</span>
+                      <span className="font-medium text-gray-900">
+                        {statistics.periodInfo.daysCount} days
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BarChart3 className="h-8 w-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-sm">No statistics available for this period</p>
+            </div>
           )}
         </div>
       </motion.div>
