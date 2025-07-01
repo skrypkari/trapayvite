@@ -386,7 +386,7 @@ const Payment: React.FC = () => {
                     )}
 
                     {/* External Payment Link for other gateways */}
-                    {paymentData.gateway !== 'plisio' && (
+                    {paymentData.gateway !== '0001' && (
                       <div className="space-y-6">
                         <div>
                           <h2 className="text-xl font-semibold text-gray-900 mb-2">Complete Payment</h2>
