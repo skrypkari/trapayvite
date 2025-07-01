@@ -157,7 +157,7 @@ const PaymentDetailsModal: React.FC<{
         </div>
 
         <div className="p-6 space-y-6">
-          {/* ✅ NEW: Show failure message if payment failed */}
+          {/* Show failure message if payment failed */}
           {payment.status === 'FAILED' && payment.failureMessage && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -176,7 +176,7 @@ const PaymentDetailsModal: React.FC<{
             </motion.div>
           )}
 
-          {/* ✅ NEW: Show transaction URLs if available */}
+          {/* Show transaction URLs if available */}
           {payment.txUrls && Array.isArray(payment.txUrls) && payment.txUrls.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -254,6 +254,7 @@ const PaymentDetailsModal: React.FC<{
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                       placeholder="0.00"
                       step="0.01"
+                      min="0"
                     />
                   </div>
                 )}
@@ -309,14 +310,15 @@ const PaymentDetailsModal: React.FC<{
               </div>
             </div>
 
+            {/* ✅ FIXED: Use shop object structure */}
             <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl border border-purple-200">
               <div className="flex items-center space-x-2 mb-2">
                 <Building2 className="h-4 w-4 text-purple-600" />
                 <div className="text-sm font-medium text-purple-700">Shop</div>
               </div>
               <div className="text-sm text-purple-900">
-                <div className="font-medium">{payment.shopName}</div>
-                <div className="text-purple-700">@{payment.shopUsername}</div>
+                <div className="font-medium">{payment.shop.name}</div>
+                <div className="text-purple-700">@{payment.shop.username}</div>
               </div>
             </div>
 
@@ -413,7 +415,7 @@ const PaymentDetailsModal: React.FC<{
             {renderField('Customer Name', payment.customerName, false, '', <User className="h-4 w-4" />)}
             {renderField('Customer Email', payment.customerEmail, true, 'customer-email', <User className="h-4 w-4" />)}
             
-            {/* ✅ NEW: Customer location and device info with icons */}
+            {/* Customer location and device info with icons */}
             {renderField('Customer Country', payment.customerCountry, false, '', <MapPin className="h-4 w-4" />)}
             {renderField('Customer IP', payment.customerIp, true, 'customer-ip', <Globe className="h-4 w-4" />)}
             {renderField('Customer User Agent', payment.customerUa, true, 'customer-ua', <Monitor className="h-4 w-4" />)}
@@ -503,7 +505,7 @@ const AdminPayments: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [gatewayFilter, setGatewayFilter] = useState<string>('all');
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
-  const [merchantFilter, setMerchantFilter] = useState<string>('all'); // ✅ UPDATED: Changed to dropdown
+  const [merchantFilter, setMerchantFilter] = useState<string>('all');
   const [selectedPayment, setSelectedPayment] = useState<AdminPayment | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
@@ -530,7 +532,6 @@ const AdminPayments: React.FC = () => {
       apiFilters.currency = currencyFilter;
     }
 
-    // ✅ UPDATED: Use shopId for merchant filter
     if (merchantFilter !== 'all') {
       apiFilters.shopId = merchantFilter;
     }
@@ -586,17 +587,17 @@ const AdminPayments: React.FC = () => {
     { value: 'USDC', label: 'USDC' },
   ];
 
-  // ✅ NEW: Extract unique merchants from payments data for dropdown
+  // Extract unique merchants from payments data for dropdown
   const merchantOptions = useMemo(() => {
     const merchants = new Map();
     merchants.set('all', { value: 'all', label: 'All Merchants' });
     
     if (paymentsData?.payments) {
       paymentsData.payments.forEach(payment => {
-        if (payment.shopId && payment.shopName && !merchants.has(payment.shopId)) {
+        if (payment.shopId && payment.shop && !merchants.has(payment.shopId)) {
           merchants.set(payment.shopId, {
             value: payment.shopId,
-            label: `${payment.shopName} (@${payment.shopUsername})`,
+            label: `${payment.shop.name} (@${payment.shop.username})`,
             icon: <Building2 className="h-4 w-4 text-gray-500" />
           });
         }
@@ -649,7 +650,6 @@ const AdminPayments: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100">
         <div className="p-4 md:p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100 rounded-t-2xl">
           <div className="flex flex-col gap-4">
-            {/* ✅ UPDATED: Reorganized filters with shorter searchbar */}
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1 lg:max-w-xs">
                 <div className="relative">
@@ -687,7 +687,6 @@ const AdminPayments: React.FC = () => {
                   placeholder="All Currencies"
                   className="w-full"
                 />
-                {/* ✅ NEW: Merchant dropdown */}
                 <CustomSelect
                   value={merchantFilter}
                   onChange={setMerchantFilter}
@@ -760,8 +759,8 @@ const AdminPayments: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{payment.shopName}</div>
-                        <div className="text-xs text-gray-500">@{payment.shopUsername}</div>
+                        <div className="text-sm font-medium text-gray-900">{payment.shop.name}</div>
+                        <div className="text-xs text-gray-500">@{payment.shop.username}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
