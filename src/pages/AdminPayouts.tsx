@@ -52,6 +52,11 @@ const MerchantDetailsModal: React.FC<{
   const [selectedNetwork, setSelectedNetwork] = useState<string>('');
   const [payoutAmount, setPayoutAmount] = useState<string>(merchant.totalAmountAfterCommissionUSDT.toString());
   const [notes, setNotes] = useState<string>('');
+  // ✅ NEW: Period selection state
+  const [periodFrom, setPeriodFrom] = useState<Date | null>(null);
+  const [periodTo, setPeriodTo] = useState<Date | null>(null);
+  const [isFromDatePickerOpen, setIsFromDatePickerOpen] = useState(false);
+  const [isToDatePickerOpen, setIsToDatePickerOpen] = useState(false);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -88,12 +93,36 @@ const MerchantDetailsModal: React.FC<{
       return;
     }
 
-    onCreatePayout({
+    // ✅ NEW: Validate period fields
+    if ((periodFrom && !periodTo) || (!periodFrom && periodTo)) {
+      toast.error('Both period dates must be selected or both left empty');
+      return;
+    }
+
+    if (periodFrom && periodTo && periodFrom >= periodTo) {
+      toast.error('Period start date must be before end date');
+      return;
+    }
+
+    if (periodTo && periodTo > new Date()) {
+      toast.error('Period end date cannot be in the future');
+      return;
+    }
+
+    const payoutData: CreatePayoutData = {
       shopId: merchant.id,
       amount,
       network: selectedNetwork,
       notes: notes.trim() || undefined
-    });
+    };
+
+    // ✅ NEW: Add period fields if selected
+    if (periodFrom && periodTo) {
+      payoutData.periodFrom = periodFrom.toISOString();
+      payoutData.periodTo = periodTo.toISOString();
+    }
+
+    onCreatePayout(payoutData);
   };
 
   return (
@@ -295,6 +324,72 @@ const MerchantDetailsModal: React.FC<{
                 </p>
               </div>
 
+              {/* ✅ NEW: Period Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payout Period (Optional)
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">From Date</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsFromDatePickerOpen(true)}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                      >
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className={periodFrom ? 'text-gray-900' : 'text-gray-500'}>
+                          {periodFrom ? format(periodFrom, 'MMM d, yyyy') : 'Select start date'}
+                        </span>
+                      </button>
+                      <AnimatePresence>
+                        {isFromDatePickerOpen && (
+                          <DatePicker
+                            value={periodFrom}
+                            onChange={(date) => {
+                              setPeriodFrom(date);
+                              setIsFromDatePickerOpen(false);
+                            }}
+                            onClose={() => setIsFromDatePickerOpen(false)}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">To Date</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsToDatePickerOpen(true)}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                      >
+                        <Calendar className="h-4 w-4 text-gray-400" />
+                        <span className={periodTo ? 'text-gray-900' : 'text-gray-500'}>
+                          {periodTo ? format(periodTo, 'MMM d, yyyy') : 'Select end date'}
+                        </span>
+                      </button>
+                      <AnimatePresence>
+                        {isToDatePickerOpen && (
+                          <DatePicker
+                            value={periodTo}
+                            onChange={(date) => {
+                              setPeriodTo(date);
+                              setIsToDatePickerOpen(false);
+                            }}
+                            onClose={() => setIsToDatePickerOpen(false)}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Specify the period this payout covers (both dates required if used)
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Notes (Optional)
@@ -476,6 +571,17 @@ const PayoutDetailsModal: React.FC<{
                   <div className="text-sm text-gray-600">@{payout.shopUsername}</div>
                 </div>
               </div>
+
+              {/* ✅ NEW: Show period information if available */}
+              {payout.periodFrom && payout.periodTo && (
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                  <div className="text-sm font-medium text-blue-700 mb-1">Payout Period</div>
+                  <div className="text-sm text-blue-900">
+                    <div>From: {format(new Date(payout.periodFrom), 'MMM d, yyyy')}</div>
+                    <div>To: {format(new Date(payout.periodTo), 'MMM d, yyyy')}</div>
+                  </div>
+                </div>
+              )}
 
               {payout.txid && (
                 <div className="p-4 bg-gray-50 rounded-xl">
@@ -920,6 +1026,10 @@ const AdminPayouts: React.FC = () => {
                     <th className="text-left px-6 py-4">
                       <span className="text-sm font-medium text-gray-500">Status</span>
                     </th>
+                    {/* ✅ NEW: Period column */}
+                    <th className="text-left px-6 py-4">
+                      <span className="text-sm font-medium text-gray-500">Period</span>
+                    </th>
                     <th className="text-left px-6 py-4">
                       <span className="text-sm font-medium text-gray-500">Transaction ID</span>
                     </th>
@@ -974,6 +1084,17 @@ const AdminPayouts: React.FC = () => {
                             <AlertCircle className="h-4 w-4" />
                             <span className="text-sm font-medium">Rejected</span>
                           </div>
+                        )}
+                      </td>
+                      {/* ✅ NEW: Period display */}
+                      <td className="px-6 py-4">
+                        {payout.periodFrom && payout.periodTo ? (
+                          <div className="text-sm text-gray-600">
+                            <div>{format(new Date(payout.periodFrom), 'MMM d')}</div>
+                            <div className="text-xs text-gray-400">to {format(new Date(payout.periodTo), 'MMM d')}</div>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
                         )}
                       </td>
                       <td className="px-6 py-4">

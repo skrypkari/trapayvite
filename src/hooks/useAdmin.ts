@@ -163,6 +163,7 @@ export interface AdminPayoutMerchant {
   };
 }
 
+// ✅ UPDATED: Added periodFrom and periodTo fields
 export interface AdminPayout {
   id: string;
   shopId: string;
@@ -176,6 +177,9 @@ export interface AdminPayout {
   notes?: string;
   createdAt: string;
   paidAt?: string;
+  // ✅ NEW: Period fields
+  periodFrom?: string; // ISO 8601 date string
+  periodTo?: string; // ISO 8601 date string
 }
 
 export interface AdminPayoutMerchantsFilters {
@@ -215,11 +219,15 @@ export interface AdminPayoutsResponse {
   };
 }
 
+// ✅ UPDATED: Added periodFrom and periodTo fields
 export interface CreatePayoutData {
   shopId: string;
   amount: number;
   network: string;
   notes?: string;
+  // ✅ NEW: Period fields (optional)
+  periodFrom?: string; // ISO 8601 date string
+  periodTo?: string; // ISO 8601 date string
 }
 
 // ===== NEW: MERCHANT STATISTICS TYPES =====
@@ -492,13 +500,33 @@ export function useAdminPayouts(filters?: AdminPayoutFilters) {
   });
 }
 
-// Hook to create a new payout
+// ✅ UPDATED: Hook to create a new payout with period validation
 export function useCreatePayout() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (data: CreatePayoutData) => {
-      const response = await api.post<{ success: boolean; result: AdminPayout }>('/admin/payouts', data);
+      // ✅ NEW: Client-side validation for period fields
+      if (data.periodFrom && !data.periodTo) {
+        throw new Error('If periodFrom is specified, periodTo must also be provided');
+      }
+      if (data.periodTo && !data.periodFrom) {
+        throw new Error('If periodTo is specified, periodFrom must also be provided');
+      }
+      if (data.periodFrom && data.periodTo) {
+        const fromDate = new Date(data.periodFrom);
+        const toDate = new Date(data.periodTo);
+        const now = new Date();
+        
+        if (fromDate >= toDate) {
+          throw new Error('periodFrom must be earlier than periodTo');
+        }
+        if (toDate > now) {
+          throw new Error('periodTo cannot be a future date');
+        }
+      }
+      
+      const response = await api.post<{ success: boolean; result: AdminPayout }>('/admin/payout', data);
       return response.result;
     },
     onSuccess: () => {
