@@ -51,12 +51,10 @@ export interface AdminStatsApiResponse {
   };
 }
 
-// Admin Payment Types - ✅ UPDATED: Added CHARGEBACK and REFUND statuses, failure_message, tx_urls, and customer fields
+// ✅ FIXED: Updated AdminPayment interface to match actual API response
 export interface AdminPayment {
   id: string;
   shopId: string;
-  shopName: string;
-  shopUsername: string;
   gateway: string;
   orderId: string;
   amount: number;
@@ -68,7 +66,6 @@ export interface AdminPayment {
   gatewayPaymentId?: string;
   customerEmail?: string;
   customerName?: string;
-  // ✅ NEW: Customer location and device info
   customerCountry?: string;
   customerIp?: string;
   customerUa?: string;
@@ -82,12 +79,15 @@ export interface AdminPayment {
   expiresAt?: string;
   webhookLogs?: WebhookLog[];
   gatewayOrderId?: string;
-  // ✅ NEW: Chargeback specific fields
   chargebackAmount?: number;
   notes?: string;
-  // ✅ NEW: Failure message and transaction URLs
   failureMessage?: string;
   txUrls?: string[];
+  // ✅ FIXED: Shop information structure
+  shop: {
+    name: string;
+    username: string;
+  };
 }
 
 export interface WebhookLog {
@@ -107,7 +107,7 @@ export interface AdminPaymentFilters {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
-  currency?: string; // ✅ NEW: Added currency filter
+  currency?: string;
 }
 
 export interface AdminPaymentsResponse {
@@ -126,11 +126,10 @@ export interface AdminPaymentResponse {
   result: AdminPayment;
 }
 
-// ✅ UPDATED: Added chargeback and refund specific fields
 export interface UpdatePaymentStatusData {
   status: 'PENDING' | 'PROCESSING' | 'PAID' | 'EXPIRED' | 'FAILED' | 'CHARGEBACK' | 'REFUND';
   notes?: string;
-  chargebackAmount?: number; // Required for CHARGEBACK status
+  chargebackAmount?: number;
 }
 
 // ===== NEW: PAYOUT TYPES =====
@@ -167,7 +166,6 @@ export interface AdminPayoutMerchant {
   };
 }
 
-// ✅ UPDATED: Added periodFrom and periodTo fields
 export interface AdminPayout {
   id: string;
   shopId: string;
@@ -181,9 +179,8 @@ export interface AdminPayout {
   notes?: string;
   createdAt: string;
   paidAt?: string;
-  // ✅ NEW: Period fields
-  periodFrom?: string; // ISO 8601 date string
-  periodTo?: string; // ISO 8601 date string
+  periodFrom?: string;
+  periodTo?: string;
 }
 
 export interface AdminPayoutMerchantsFilters {
@@ -223,15 +220,13 @@ export interface AdminPayoutsResponse {
   };
 }
 
-// ✅ UPDATED: Added periodFrom and periodTo fields
 export interface CreatePayoutData {
   shopId: string;
   amount: number;
   network: string;
   notes?: string;
-  // ✅ NEW: Period fields (optional)
-  periodFrom?: string; // ISO 8601 date string
-  periodTo?: string; // ISO 8601 date string
+  periodFrom?: string;
+  periodTo?: string;
 }
 
 // ===== NEW: MERCHANT STATISTICS TYPES =====
@@ -396,7 +391,7 @@ export function useAdminPayments(filters?: AdminPaymentFilters) {
       if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters?.dateTo) params.append('dateTo', filters.dateTo);
       if (filters?.search) params.append('search', filters.search);
-      if (filters?.currency) params.append('currency', filters.currency); // ✅ NEW: Added currency filter
+      if (filters?.currency) params.append('currency', filters.currency);
       
       const queryString = params.toString();
       const response = await api.get<AdminPaymentsResponse>(
@@ -504,13 +499,13 @@ export function useAdminPayouts(filters?: AdminPayoutFilters) {
   });
 }
 
-// ✅ UPDATED: Hook to create a new payout with period validation
+// Hook to create a new payout with period validation
 export function useCreatePayout() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: async (data: CreatePayoutData) => {
-      // ✅ NEW: Client-side validation for period fields
+      // Client-side validation for period fields
       if (data.periodFrom && !data.periodTo) {
         throw new Error('If periodFrom is specified, periodTo must also be provided');
       }
