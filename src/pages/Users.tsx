@@ -26,11 +26,16 @@ import {
   Wallet,
   Copy,
   Check,
-  X
+  X,
+  BarChart3,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
+import Chart from 'react-apexcharts';
 import CustomSelect from '../components/CustomSelect';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
@@ -48,7 +53,390 @@ import {
   type GatewaySettings,
   validateUserData
 } from '../hooks/useUsers';
+import { 
+  useAdminMerchantStatistics,
+  type MerchantStatistics,
+  type MerchantStatisticsFilters
+} from '../hooks/useAdmin';
 import { getGatewayInfo, GATEWAY_INFO, convertGatewayIdsToNames } from '../utils/gatewayMapping';
+
+const MerchantAnalyticsModal: React.FC<{
+  user: User;
+  onClose: () => void;
+}> = ({ user, onClose }) => {
+  const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'week' | 'year' | 'all'>('month');
+  const [customDateRange, setCustomDateRange] = useState<{
+    dateFrom?: string;
+    dateTo?: string;
+  }>({});
+
+  const filters: MerchantStatisticsFilters = {
+    shopId: user.id,
+    period: selectedPeriod,
+    ...customDateRange
+  };
+
+  const { data: stats, isLoading, error } = useAdminMerchantStatistics(filters);
+
+  const periodOptions = [
+    { value: 'month', label: 'This Month' },
+    { value: 'week', label: 'This Week' },
+    { value: 'year', label: 'This Year' },
+    { value: 'all', label: 'All Time' }
+  ];
+
+  // Chart configuration for daily data
+  const chartOptions = {
+    chart: {
+      type: 'area',
+      toolbar: {
+        show: false
+      },
+      zoom: {
+        enabled: false
+      }
+    },
+    colors: ['#6936d3', '#10b981', '#f59e0b'],
+    stroke: {
+      curve: 'smooth',
+      width: 2
+    },
+    fill: {
+      type: 'gradient',
+      gradient: {
+        shadeIntensity: 1,
+        opacityFrom: 0.45,
+        opacityTo: 0.05,
+        stops: [50, 100]
+      }
+    },
+    xaxis: {
+      categories: stats?.dailyData?.map(item => 
+        format(new Date(item.date), 'MMM d')
+      ) || [],
+      axisBorder: {
+        show: false
+      },
+      axisTicks: {
+        show: false
+      }
+    },
+    yaxis: {
+      labels: {
+        formatter: (value: number) => `$${value.toFixed(0)}`,
+        style: {
+          fontSize: '12px'
+        }
+      }
+    },
+    grid: {
+      strokeDashArray: 4,
+      padding: {
+        left: 20,
+        bottom: 0
+      }
+    },
+    dataLabels: {
+      enabled: false
+    },
+    legend: {
+      show: true,
+      position: 'top'
+    },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          height: 200
+        }
+      }
+    }]
+  };
+
+  const series = [
+    {
+      name: 'Total Turnover',
+      data: stats?.dailyData?.map(item => item.turnover) || []
+    },
+    {
+      name: 'Merchant Earnings',
+      data: stats?.dailyData?.map(item => item.merchantEarnings) || []
+    },
+    {
+      name: 'Gateway Earnings',
+      data: stats?.dailyData?.map(item => item.gatewayEarnings) || []
+    }
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto"
+      >
+        <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Merchant Analytics</h3>
+                <p className="text-sm text-gray-500">{user.name} (@{user.username})</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <CustomSelect
+                value={selectedPeriod}
+                onChange={(value) => setSelectedPeriod(value as any)}
+                options={periodOptions}
+                placeholder="Select period"
+                className="w-[150px]"
+              />
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <LoadingSpinner size="lg" />
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="h-8 w-8 text-red-600" />
+              </div>
+              <p className="text-red-600 text-sm">Failed to load merchant analytics</p>
+            </div>
+          ) : stats ? (
+            <>
+              {/* Overview Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-primary/20 transition-all duration-200"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-green-50 rounded-xl">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Total Turnover</p>
+                      <p className="text-xl font-semibold text-gray-900">
+                        {stats.totalTurnover.toLocaleString()} USDT
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-primary/20 transition-all duration-200"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-50 rounded-xl">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Merchant Earnings</p>
+                      <p className="text-xl font-semibold text-gray-900">
+                        {stats.merchantEarnings.toLocaleString()} USDT
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-primary/20 transition-all duration-200"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-purple-50 rounded-xl">
+                      <Activity className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Total Payments</p>
+                      <p className="text-xl font-semibold text-gray-900">
+                        {stats.totalPayments.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:border-primary/20 transition-all duration-200"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-orange-50 rounded-xl">
+                      <CheckCircle2 className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Conversion Rate</p>
+                      <p className="text-xl font-semibold text-gray-900">
+                        {stats.conversionRate.toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Revenue Chart */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900">Revenue Trends</h4>
+                  <div className="text-sm text-gray-500">
+                    {stats.periodInfo.from && stats.periodInfo.to && (
+                      <>
+                        {format(new Date(stats.periodInfo.from), 'MMM d, yyyy')} - {format(new Date(stats.periodInfo.to), 'MMM d, yyyy')}
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="h-64">
+                  <Chart
+                    options={chartOptions}
+                    series={series}
+                    type="area"
+                    height="100%"
+                  />
+                </div>
+              </div>
+
+              {/* Gateway Breakdown */}
+              <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">Gateway Performance</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {stats.gatewayBreakdown.map((gateway, index) => (
+                    <div key={index} className="p-4 border border-gray-200 rounded-xl">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h5 className="font-medium text-gray-900">{gateway.gatewayDisplayName}</h5>
+                          <p className="text-sm text-gray-500">{gateway.paymentsCount} payments</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-center p-3 bg-blue-50 rounded-lg">
+                          <div className="text-lg font-bold text-blue-900">
+                            {gateway.turnoverUSDT.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-blue-700">Turnover USDT</div>
+                        </div>
+                        
+                        <div className="text-center p-3 bg-green-50 rounded-lg">
+                          <div className="text-lg font-bold text-green-900">
+                            {gateway.merchantEarningsUSDT.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-green-700">Earnings USDT</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 text-center p-2 bg-gray-50 rounded-lg">
+                        <div className="text-sm font-medium text-gray-900">
+                          Commission: {gateway.averageCommissionRate}%
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Additional Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-yellow-50 rounded-xl">
+                      <ArrowDownLeft className="h-5 w-5 text-yellow-600" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900">Payouts</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Total Paid Out:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {stats.totalPaidOut.toLocaleString()} USDT
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Pending:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {(stats.merchantEarnings - stats.totalPaidOut).toLocaleString()} USDT
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-indigo-50 rounded-xl">
+                      <Activity className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900">Performance</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Average Check:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {stats.averageCheck.toFixed(2)} USDT
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Success Rate:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {((stats.successfulPayments / stats.totalPayments) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-2 bg-red-50 rounded-xl">
+                      <Percent className="h-5 w-5 text-red-600" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-900">Commissions</h4>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Gateway Earnings:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {stats.gatewayEarnings.toLocaleString()} USDT
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-500">Avg Commission:</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {((stats.gatewayEarnings / stats.totalTurnover) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 const UserDetailsModal: React.FC<{
   user: User;
@@ -718,6 +1106,7 @@ const Users: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUserForAnalytics, setSelectedUserForAnalytics] = useState<User | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
@@ -956,8 +1345,16 @@ const Users: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">
                         <button
+                          onClick={() => setSelectedUserForAnalytics(user)}
+                          className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-all duration-200"
+                          title="View Analytics"
+                        >
+                          <BarChart3 className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => setSelectedUser(user)}
                           className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-all duration-200"
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
@@ -1023,6 +1420,12 @@ const Users: React.FC = () => {
             onDelete={handleDeleteUser}
             onSuspend={handleSuspendUser}
             onActivate={handleActivateUser}
+          />
+        )}
+        {selectedUserForAnalytics && (
+          <MerchantAnalyticsModal
+            user={selectedUserForAnalytics}
+            onClose={() => setSelectedUserForAnalytics(null)}
           />
         )}
         <AddUserModal
