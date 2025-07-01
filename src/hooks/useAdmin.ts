@@ -224,15 +224,16 @@ export interface CreatePayoutData {
 
 // ===== NEW: MERCHANT STATISTICS TYPES =====
 
+// ✅ UPDATED: Fixed MerchantStatistics interface with proper Gateway Earnings calculation
 export interface MerchantStatistics {
   totalTurnover: number;
   merchantEarnings: number;
-  gatewayEarnings: number;
+  gatewayEarnings: number; // ✅ This should be calculated as totalTurnover - merchantEarnings
   totalPaidOut: number;
   averageCheck: number;
   totalPayments: number;
   successfulPayments: number;
-  conversionRate: number;
+  conversionRate: number; // ✅ This should be calculated properly as (successfulPayments / totalPayments) * 100
   gatewayBreakdown: Array<{
     gateway: string;
     gatewayDisplayName: string;
@@ -529,7 +530,7 @@ export function useDeletePayout() {
 
 // ===== NEW: MERCHANT STATISTICS HOOKS =====
 
-// Hook to get merchant statistics
+// ✅ UPDATED: Hook to get merchant statistics with proper calculations
 export function useAdminMerchantStatistics(filters: MerchantStatisticsFilters) {
   return useQuery({
     queryKey: adminKeys.merchantStatsList(filters),
@@ -546,7 +547,44 @@ export function useAdminMerchantStatistics(filters: MerchantStatisticsFilters) {
         `/admin/merchant-statistics?${queryString}`
       );
       
-      return response.result;
+      // ✅ FIXED: Ensure proper calculations on the frontend
+      const stats = response.result;
+      
+      // Calculate Gateway Earnings as totalTurnover - merchantEarnings
+      const correctedGatewayEarnings = stats.totalTurnover - stats.merchantEarnings;
+      
+      // Calculate proper conversion rate as percentage
+      const correctedConversionRate = stats.totalPayments > 0 
+        ? (stats.successfulPayments / stats.totalPayments) * 100 
+        : 0;
+      
+      console.log('🔍 Original stats from API:', {
+        totalTurnover: stats.totalTurnover,
+        merchantEarnings: stats.merchantEarnings,
+        gatewayEarnings: stats.gatewayEarnings,
+        conversionRate: stats.conversionRate,
+        totalPayments: stats.totalPayments,
+        successfulPayments: stats.successfulPayments
+      });
+      
+      console.log('🔍 Corrected calculations:', {
+        correctedGatewayEarnings,
+        correctedConversionRate: correctedConversionRate.toFixed(2) + '%'
+      });
+      
+      // Return corrected statistics
+      const correctedStats: MerchantStatistics = {
+        ...stats,
+        gatewayEarnings: correctedGatewayEarnings, // ✅ FIXED: Proper calculation
+        conversionRate: correctedConversionRate, // ✅ FIXED: Proper percentage calculation
+        // Also fix daily data if needed
+        dailyData: stats.dailyData.map(day => ({
+          ...day,
+          gatewayEarnings: day.turnover - day.merchantEarnings // ✅ FIXED: Correct daily gateway earnings
+        }))
+      };
+      
+      return correctedStats;
     },
     enabled: !!filters.shopId,
     staleTime: 1000 * 60 * 5, // 5 minutes
