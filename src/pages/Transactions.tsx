@@ -140,7 +140,7 @@ const PaymentDetailsModal: React.FC<{
 
         <div className="p-6 space-y-4">
           {/* ✅ NEW: Show failure message if payment failed */}
-          {payment.status === 'FAILED' && (payment as any).failure_message && (
+          {payment.status === 'FAILED' && payment.failure_message && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
@@ -148,14 +148,14 @@ const PaymentDetailsModal: React.FC<{
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-red-900">Failure Reason</h4>
-                  <p className="mt-1 text-sm text-red-700">{(payment as any).failure_message}</p>
+                  <p className="mt-1 text-sm text-red-700">{payment.failure_message}</p>
                 </div>
               </div>
             </div>
           )}
 
           {/* ✅ NEW: Show transaction URLs if available */}
-          {(payment as any).tx_urls && Array.isArray((payment as any).tx_urls) && (payment as any).tx_urls.length > 0 && (
+          {payment.tx_urls && Array.isArray(payment.tx_urls) && payment.tx_urls.length > 0 && (
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
@@ -164,7 +164,7 @@ const PaymentDetailsModal: React.FC<{
                 <div className="flex-1">
                   <h4 className="text-sm font-medium text-blue-900 mb-2">Transaction URLs</h4>
                   <div className="space-y-2">
-                    {(payment as any).tx_urls.map((url: string, index: number) => (
+                    {payment.tx_urls.map((url: string, index: number) => (
                       <div key={index} className="flex items-center justify-between">
                         <a
                           href={url}
@@ -219,10 +219,18 @@ const PaymentDetailsModal: React.FC<{
               </div>
             </div>
 
+            {/* ✅ UPDATED: Separate amount and currency */}
             <div className="p-4 bg-gray-50 rounded-xl">
               <div className="text-sm font-medium text-gray-500 mb-1">Amount</div>
               <div className="text-lg font-semibold text-gray-900">
-                {formatCurrency(payment.amount, payment.currency)}
+                {payment.amount.toFixed(2)}
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Currency</div>
+              <div className="text-sm text-gray-900">
+                {payment.currency}
               </div>
             </div>
 
@@ -259,20 +267,6 @@ const PaymentDetailsModal: React.FC<{
                     <span className="text-sm font-medium">Expired</span>
                   </div>
                 )}
-                {/* ✅ NEW: CHARGEBACK status */}
-                {(payment.status as any) === 'CHARGEBACK' && (
-                  <div className="flex items-center space-x-2 text-purple-600 bg-purple-50 px-3 py-1 rounded-lg w-fit">
-                    <RotateCcw className="h-4 w-4" />
-                    <span className="text-sm font-medium">Chargeback</span>
-                  </div>
-                )}
-                {/* ✅ NEW: REFUND status */}
-                {(payment.status as any) === 'REFUND' && (
-                  <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg w-fit">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="text-sm font-medium">Refund</span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -294,130 +288,11 @@ const PaymentDetailsModal: React.FC<{
 
             {/* Product and Order Information */}
             {renderField('Product Name', payment.productName)}
-            {renderField('Order ID', (payment as any).order_id, true, 'order-id')}
-            {renderField('Source Currency', (payment as any).source_currency)}
-            {renderField('Invoice Total Sum', (payment as any).invoice_total_sum)}
 
             {/* Customer Information */}
             {renderField('Customer Name', payment.customerName)}
             {renderField('Customer Email', payment.customerEmail, true, 'customer-email')}
-
-            {/* Payment Method Information */}
-            {renderField('Payment Method', (payment as any).payment_method)}
-            {renderField('Bank ID', (payment as any).bank_id)}
-            {renderField('Card Last 4', (payment as any).card_last4)}
-            {renderField('Remitter IBAN', (payment as any).remitter_iban, true, 'remitter-iban')}
-            {renderField('Remitter Name', (payment as any).remitter_name)}
-
-            {/* Gateway Specific Information */}
-            {renderField('Country', (payment as any).country)}
-            {renderField('Language', (payment as any).language)}
-            {renderField('Amount is Editable', (payment as any).amount_is_editable)}
-            {renderField('Max Payments', (payment as any).max_payments)}
-            {renderField('Rapyd Customer', (payment as any).rapyd_customer)}
-
-            {/* Expiry Information */}
-            {(payment as any).expires_at && (
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Expires At</div>
-                <div className="text-sm text-gray-900">
-                  {format(new Date((payment as any).expires_at), 'PPpp')}
-                </div>
-              </div>
-            )}
-
-            {/* ✅ NEW: Show chargeback amount if status is CHARGEBACK */}
-            {(payment.status as any) === 'CHARGEBACK' && (payment as any).chargebackAmount && (
-              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-                <div className="text-sm font-medium text-purple-700 mb-1">Chargeback Amount</div>
-                <div className="text-lg font-semibold text-purple-900">
-                  {(payment as any).chargebackAmount.toFixed(2)} USDT
-                </div>
-              </div>
-            )}
-
-            {/* ✅ NEW: Show notes if available */}
-            {(payment as any).notes && (
-              <div className="p-4 bg-gray-50 rounded-xl md:col-span-2 lg:col-span-3">
-                <div className="text-sm font-medium text-gray-500 mb-1">Notes</div>
-                <div className="text-sm text-gray-900">{(payment as any).notes}</div>
-              </div>
-            )}
           </div>
-
-          {/* URLs and Links - Special handling for links */}
-          {((payment as any).payment_url || (payment as any).success_url || (payment as any).fail_url || (payment as any).qr_url) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(payment as any).payment_url && (
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Payment URL</div>
-                  <div className="flex items-center justify-between">
-                    <a
-                      href={(payment as any).payment_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-primary hover:text-primary-dark break-all mr-2"
-                    >
-                      {(payment as any).payment_url}
-                    </a>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <button
-                        onClick={() => handleCopy((payment as any).payment_url, 'payment-url')}
-                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        {showCopied === 'payment-url' ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </button>
-                      <a
-                        href={(payment as any).payment_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <ArrowUpRight className="h-4 w-4" />
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {(payment as any).success_url && (
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Success URL</div>
-                  <div className="text-sm text-gray-900 break-all">{(payment as any).success_url}</div>
-                </div>
-              )}
-
-              {(payment as any).fail_url && (
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Fail URL</div>
-                  <div className="text-sm text-gray-900 break-all">{(payment as any).fail_url}</div>
-                </div>
-              )}
-
-              {(payment as any).qr_url && (
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">QR URL</div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-900 break-all mr-2">{(payment as any).qr_url}</div>
-                    <button
-                      onClick={() => handleCopy((payment as any).qr_url, 'qr-url')}
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                    >
-                      {showCopied === 'qr-url' ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </motion.div>
     </motion.div>
@@ -428,6 +303,7 @@ const Transactions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [gatewayFilter, setGatewayFilter] = useState<string>('all');
+  const [currencyFilter, setCurrencyFilter] = useState<string>('all'); // ✅ NEW: Currency filter
   const [selectedPayment, setSelectedPayment] = useState<ShopPayment | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -448,8 +324,12 @@ const Transactions: React.FC = () => {
       apiFilters.gateway = gatewayFilter;
     }
 
+    if (currencyFilter !== 'all') { // ✅ NEW: Currency filter
+      apiFilters.currency = currencyFilter;
+    }
+
     return apiFilters;
-  }, [currentPage, pageSize, statusFilter, gatewayFilter]);
+  }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter]);
 
   const { data: paymentsData, isLoading, error } = useShopPayments(filters);
   const { data: statistics } = useShopStatistics('30d');
@@ -462,8 +342,6 @@ const Transactions: React.FC = () => {
     { value: 'PROCESSING', label: 'Processing', icon: <Loader2 className="h-4 w-4 text-blue-600" /> },
     { value: 'FAILED', label: 'Failed', icon: <AlertCircle className="h-4 w-4 text-red-600" /> },
     { value: 'EXPIRED', label: 'Expired', icon: <XCircle className="h-4 w-4 text-gray-600" /> },
-    { value: 'CHARGEBACK', label: 'Chargeback', icon: <RotateCcw className="h-4 w-4 text-purple-600" /> },
-    { value: 'REFUND', label: 'Refund', icon: <AlertTriangle className="h-4 w-4 text-blue-600" /> },
   ];
 
   const gatewayOptions = [
@@ -475,6 +353,27 @@ const Transactions: React.FC = () => {
     { value: '1001', label: 'Gateway 1001' },
     { value: '1010', label: 'Gateway 1010' },
     { value: '1100', label: 'Gateway 1100' },
+  ];
+
+  // ✅ NEW: Currency options
+  const currencyOptions = [
+    { value: 'all', label: 'All Currencies' },
+    { value: 'USD', label: 'USD' },
+    { value: 'EUR', label: 'EUR' },
+    { value: 'GBP', label: 'GBP' },
+    { value: 'JPY', label: 'JPY' },
+    { value: 'CAD', label: 'CAD' },
+    { value: 'AUD', label: 'AUD' },
+    { value: 'CHF', label: 'CHF' },
+    { value: 'CNY', label: 'CNY' },
+    { value: 'USDT', label: 'USDT' },
+    { value: 'TON', label: 'TON' },
+    { value: 'BTC', label: 'BTC' },
+    { value: 'ETH', label: 'ETH' },
+    { value: 'LTC', label: 'LTC' },
+    { value: 'BCH', label: 'BCH' },
+    { value: 'DOGE', label: 'DOGE' },
+    { value: 'USDC', label: 'USDC' },
   ];
 
   const columns = useMemo(() => {
@@ -519,6 +418,7 @@ const Transactions: React.FC = () => {
           );
         },
       }),
+      // ✅ UPDATED: Separate amount and currency columns
       columnHelper.accessor('amount', {
         header: ({ column }) => (
           <button
@@ -531,13 +431,20 @@ const Transactions: React.FC = () => {
         ),
         cell: (info) => {
           const amount = info.getValue();
-          const payment = info.row.original;
           return (
             <div className="font-medium whitespace-nowrap text-gray-900">
-              {formatCurrencyCompact(amount, payment.currency)}
+              {amount.toFixed(2)}
             </div>
           );
         },
+      }),
+      columnHelper.accessor('currency', {
+        header: 'Currency',
+        cell: (info) => (
+          <div className="text-sm text-gray-600">
+            {info.getValue()}
+          </div>
+        ),
       }),
       columnHelper.accessor('status', {
         header: 'Status',
@@ -574,20 +481,6 @@ const Transactions: React.FC = () => {
                 <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">
                   <XCircle className="h-4 w-4 hidden sm:inline" />
                   <span className="text-sm font-medium">Expired</span>
-                </div>
-              )}
-              {/* ✅ NEW: CHARGEBACK status */}
-              {(status as any) === 'CHARGEBACK' && (
-                <div className="flex items-center space-x-2 text-purple-600 bg-purple-50 px-3 py-1 rounded-lg">
-                  <RotateCcw className="h-4 w-4 hidden sm:inline" />
-                  <span className="text-sm font-medium">Chargeback</span>
-                </div>
-              )}
-              {/* ✅ NEW: REFUND status */}
-              {(status as any) === 'REFUND' && (
-                <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
-                  <AlertTriangle className="h-4 w-4 hidden sm:inline" />
-                  <span className="text-sm font-medium">Refund</span>
                 </div>
               )}
             </div>
@@ -741,20 +634,28 @@ const Transactions: React.FC = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-4">
+            {/* ✅ UPDATED: Added currency filter and changed grid to accommodate 3 filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <CustomSelect
                 value={statusFilter}
                 onChange={setStatusFilter}
                 options={statusOptions}
                 placeholder="Filter by status"
-                className="w-full sm:w-[180px]"
+                className="w-full"
               />
               <CustomSelect
                 value={gatewayFilter}
                 onChange={setGatewayFilter}
                 options={gatewayOptions}
                 placeholder="Filter by gateway"
-                className="w-full sm:w-[180px]"
+                className="w-full"
+              />
+              <CustomSelect
+                value={currencyFilter}
+                onChange={setCurrencyFilter}
+                options={currencyOptions}
+                placeholder="Filter by currency"
+                className="w-full"
               />
             </div>
           </div>

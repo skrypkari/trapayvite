@@ -8,35 +8,41 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  ArrowUpRight,
   ArrowDownLeft,
-  AlertTriangle,
+  RefreshCw,
+  ChevronDown,
   Download,
-  DollarSign,
+  FileText,
+  Share2,
+  Printer,
   Wallet,
-  Building2,
-  Bitcoin,
-  Plus,
-  User as UserIcon,
+  CreditCard,
+  Receipt,
   AlertCircle,
   Copy,
-  Check,
-  X,
+  DollarSign,
   TrendingUp,
-  ArrowUpRight,
-  Trash2,
+  ArrowRight,
   MoreHorizontal,
   Globe,
-  Mail,
-  ExternalLink,
+  Building2,
+  Bitcoin,
+  Check,
+  X,
   RotateCcw,
+  AlertTriangle,
   Loader2,
-  Edit3
+  ExternalLink,
+  Edit3,
+  Save,
+  User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
-import DatePicker from '../components/DatePicker';
 import CustomSelect from '../components/CustomSelect';
+import DatePicker from '../components/DatePicker';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { 
   useAdmin, 
@@ -44,58 +50,60 @@ import {
   type AdminPaymentFilters,
   type UpdatePaymentStatusData 
 } from '../hooks/useAdmin';
+import { getGatewayDisplayName } from '../utils/gatewayMapping';
 
-const UpdateStatusModal: React.FC<{
+const PaymentDetailsModal: React.FC<{
   payment: AdminPayment;
   onClose: () => void;
-  onUpdate: (id: string, data: UpdatePaymentStatusData) => void;
-}> = ({ payment, onClose, onUpdate }) => {
-  const [selectedStatus, setSelectedStatus] = useState<AdminPayment['status']>(payment.status);
-  const [notes, setNotes] = useState('');
-  const [chargebackAmount, setChargebackAmount] = useState<string>('');
-  const [isUpdating, setIsUpdating] = useState(false);
+  onUpdateStatus: (id: string, data: UpdatePaymentStatusData) => void;
+}> = ({ payment, onClose, onUpdateStatus }) => {
+  const [showCopied, setShowCopied] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<UpdatePaymentStatusData>({
+    status: payment.status,
+    notes: payment.notes || '',
+    chargebackAmount: payment.chargebackAmount || 0
+  });
 
-  const statusOptions = [
-    { value: 'PENDING', label: 'Pending', description: 'Payment is awaiting confirmation from the gateway', icon: <Clock className="h-4 w-4 text-yellow-600" /> },
-    { value: 'PROCESSING', label: 'Processing', description: 'Payment is currently being processed by the gateway', icon: <Loader2 className="h-4 w-4 text-blue-600" /> },
-    { value: 'PAID', label: 'Paid', description: 'Payment successfully confirmed and received', icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> },
-    { value: 'EXPIRED', label: 'Expired', description: 'Payment link expired before completion', icon: <XCircle className="h-4 w-4 text-gray-600" /> },
-    { value: 'FAILED', label: 'Failed', description: 'Payment declined by the bank or gateway', icon: <AlertTriangle className="h-4 w-4 text-red-600" /> },
-    { value: 'REFUND', label: 'Refund', description: 'Full refund issued to the customer', icon: <ArrowDownLeft className="h-4 w-4 text-blue-600" /> },
-    { value: 'CHARGEBACK', label: 'Chargeback', description: 'Chargeback initiated by the customer. Penalty applied', icon: <RotateCcw className="h-4 w-4 text-purple-600" /> }
-  ];
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setShowCopied(id);
+    setTimeout(() => setShowCopied(null), 2000);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveStatus = () => {
+    onUpdateStatus(payment.id, editData);
+    setIsEditing(false);
+  };
+
+  const gatewayDisplayName = getGatewayDisplayName(payment.gateway);
+
+  // Helper function to render field if value exists
+  const renderField = (label: string, value: any, copyable = false, copyId?: string) => {
+    if (value === null || value === undefined || value === '') return null;
     
-    // Validate chargeback amount for CHARGEBACK status
-    if (selectedStatus === 'CHARGEBACK') {
-      if (!chargebackAmount || parseFloat(chargebackAmount) <= 0) {
-        toast.error('Chargeback amount is required and must be greater than 0');
-        return;
-      }
-    }
-
-    setIsUpdating(true);
-    
-    try {
-      const updateData: UpdatePaymentStatusData = {
-        status: selectedStatus,
-        notes: notes.trim() || undefined
-      };
-
-      // Add chargeback amount if status is CHARGEBACK
-      if (selectedStatus === 'CHARGEBACK') {
-        updateData.chargebackAmount = parseFloat(chargebackAmount);
-      }
-
-      await onUpdate(payment.id, updateData);
-      onClose();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update payment status');
-    } finally {
-      setIsUpdating(false);
-    }
+    return (
+      <div className="p-4 bg-gray-50 rounded-xl">
+        <div className="text-sm font-medium text-gray-500 mb-1">{label}</div>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-900 break-all mr-2">
+            {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}
+          </div>
+          {copyable && copyId && (
+            <button
+              onClick={() => handleCopy(value.toString(), copyId)}
+              className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+            >
+              {showCopied === copyId ? (
+                <Check className="h-4 w-4 text-green-500" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -112,677 +120,347 @@ const UpdateStatusModal: React.FC<{
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
       >
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-primary/10 rounded-xl">
-                <Edit3 className="h-5 w-5 text-primary" />
+                <CreditCard className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Update Payment Status</h3>
-                <p className="text-sm text-gray-500">Payment ID: {payment.id}</p>
+                <h3 className="text-lg font-semibold text-gray-900">Admin Payment Details</h3>
+                <p className="text-sm text-gray-500">{payment.id}</p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Edit3 className="h-5 w-5" />
+              </button>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Current Payment Info */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-500">Current Status:</span>
-                <div className="mt-1">
-                  {payment.status === 'PAID' && (
-                    <div className="flex items-center space-x-2 text-green-600">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="font-medium">Paid</span>
-                    </div>
-                  )}
-                  {payment.status === 'PENDING' && (
-                    <div className="flex items-center space-x-2 text-yellow-600">
-                      <Clock className="h-4 w-4" />
-                      <span className="font-medium">Pending</span>
-                    </div>
-                  )}
-                  {payment.status === 'PROCESSING' && (
-                    <div className="flex items-center space-x-2 text-blue-600">
-                      <Loader2 className="h-4 w-4" />
-                      <span className="font-medium">Processing</span>
-                    </div>
-                  )}
-                  {payment.status === 'FAILED' && (
-                    <div className="flex items-center space-x-2 text-red-600">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="font-medium">Failed</span>
-                    </div>
-                  )}
-                  {payment.status === 'EXPIRED' && (
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <XCircle className="h-4 w-4" />
-                      <span className="font-medium">Expired</span>
-                    </div>
-                  )}
-                  {payment.status === 'CHARGEBACK' && (
-                    <div className="flex items-center space-x-2 text-purple-600">
-                      <RotateCcw className="h-4 w-4" />
-                      <span className="font-medium">Chargeback</span>
-                    </div>
-                  )}
-                  {payment.status === 'REFUND' && (
-                    <div className="flex items-center space-x-2 text-blue-600">
-                      <ArrowDownLeft className="h-4 w-4" />
-                      <span className="font-medium">Refund</span>
-                    </div>
-                  )}
+        <div className="p-6 space-y-4">
+          {/* ✅ NEW: Show failure message if payment failed */}
+          {payment.status === 'FAILED' && payment.failure_message && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
                 </div>
-              </div>
-              <div>
-                <span className="text-gray-500">Amount:</span>
-                <div className="font-medium text-gray-900">
-                  {payment.amount.toLocaleString('en-US', {
-                    style: 'currency',
-                    currency: payment.currency,
-                  })}
+                <div>
+                  <h4 className="text-sm font-medium text-red-900">Failure Reason</h4>
+                  <p className="mt-1 text-sm text-red-700">{payment.failure_message}</p>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* New Status Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              New Status *
-            </label>
-            <div className="space-y-3">
-              {statusOptions.map((option) => (
-                <div
-                  key={option.value}
-                  className={`relative flex items-start p-4 border rounded-lg cursor-pointer transition-all ${
-                    selectedStatus === option.value
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => setSelectedStatus(option.value as AdminPayment['status'])}
-                >
-                  <div className="flex items-center h-5">
+          {/* ✅ NEW: Show transaction URLs if available */}
+          {payment.tx_urls && Array.isArray(payment.tx_urls) && payment.tx_urls.length > 0 && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0">
+                  <ExternalLink className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Transaction URLs</h4>
+                  <div className="space-y-2">
+                    {payment.tx_urls.map((url: string, index: number) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-700 hover:text-blue-800 break-all mr-2 underline"
+                        >
+                          {url}
+                        </a>
+                        <button
+                          onClick={() => handleCopy(url, `tx-url-${index}`)}
+                          className="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex-shrink-0"
+                        >
+                          {showCopied === `tx-url-${index}` ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status Edit Section */}
+          {isEditing && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              <h4 className="text-sm font-medium text-yellow-900 mb-4">Edit Payment Status</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <CustomSelect
+                    value={editData.status}
+                    onChange={(value) => setEditData({ ...editData, status: value as any })}
+                    options={[
+                      { value: 'PENDING', label: 'Pending' },
+                      { value: 'PROCESSING', label: 'Processing' },
+                      { value: 'PAID', label: 'Paid' },
+                      { value: 'FAILED', label: 'Failed' },
+                      { value: 'EXPIRED', label: 'Expired' },
+                      { value: 'CHARGEBACK', label: 'Chargeback' },
+                      { value: 'REFUND', label: 'Refund' }
+                    ]}
+                    placeholder="Select status"
+                  />
+                </div>
+                {editData.status === 'CHARGEBACK' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Chargeback Amount</label>
                     <input
-                      type="radio"
-                      name="status"
-                      value={option.value}
-                      checked={selectedStatus === option.value}
-                      onChange={() => setSelectedStatus(option.value as AdminPayment['status'])}
-                      className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                      type="number"
+                      value={editData.chargebackAmount || 0}
+                      onChange={(e) => setEditData({ ...editData, chargebackAmount: parseFloat(e.target.value) })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                      placeholder="0.00"
+                      step="0.01"
                     />
                   </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex items-center space-x-2">
-                      {option.icon}
-                      <span className="text-sm font-medium text-gray-900">{option.label}</span>
-                    </div>
-                    <p className="text-sm text-gray-500 mt-1">{option.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Chargeback Amount (only for CHARGEBACK status) */}
-          {selectedStatus === 'CHARGEBACK' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Chargeback Amount (USDT) *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={chargebackAmount}
-                onChange={(e) => setChargebackAmount(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                placeholder="15.50"
-                required
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Enter the chargeback penalty amount in USDT. This field is required for chargeback status.
-              </p>
-            </div>
-          )}
-
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes (Optional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-              placeholder="Add notes about this status change..."
-              rows={3}
-            />
-          </div>
-
-          {/* Warning for irreversible actions */}
-          {(selectedStatus === 'PAID' || selectedStatus === 'CHARGEBACK' || selectedStatus === 'REFUND') && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-medium text-yellow-900">Important Notice</h4>
-                  <p className="mt-1 text-sm text-yellow-700">
-                    {selectedStatus === 'PAID' && 'Marking a payment as PAID indicates successful completion and may trigger payout processes.'}
-                    {selectedStatus === 'CHARGEBACK' && 'Chargeback status will apply penalty fees and may affect merchant standing.'}
-                    {selectedStatus === 'REFUND' && 'Refund status indicates money has been returned to the customer.'}
-                  </p>
-                </div>
+                )}
+              </div>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea
+                  value={editData.notes || ''}
+                  onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  rows={3}
+                  placeholder="Add notes..."
+                />
+              </div>
+              <div className="mt-4 flex justify-end space-x-3">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveStatus}
+                  className="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary-dark flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>Save Changes</span>
+                </button>
               </div>
             </div>
           )}
 
-          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
-              disabled={isUpdating}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isUpdating || (selectedStatus === 'CHARGEBACK' && !chargebackAmount)}
-              className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {isUpdating && <LoadingSpinner size="sm" />}
-              <span>{isUpdating ? 'Updating...' : 'Update Status'}</span>
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const PaymentDetailsModal: React.FC<{
-  payment: AdminPayment;
-  onClose: () => void;
-  onUpdateStatus: (id: string, data: UpdatePaymentStatusData) => void;
-}> = ({ payment, onClose, onUpdateStatus }) => {
-  const [showCopied, setShowCopied] = useState<string | null>(null);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setShowCopied(id);
-    setTimeout(() => setShowCopied(null), 2000);
-  };
-
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
-        }}
-      >
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
-        >
-          <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-primary/10 rounded-xl">
-                  <AlertCircle className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Payment Details</h3>
-                  <p className="text-sm text-gray-500">{payment.id}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
+          {/* All fields in a single grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Basic Information */}
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Payment ID</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-900 font-mono break-all mr-2">{payment.id}</div>
                 <button
-                  onClick={() => setShowUpdateModal(true)}
-                  className="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
+                  onClick={() => handleCopy(payment.id, 'payment-id')}
+                  className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                 >
-                  <Edit3 className="h-4 w-4" />
-                  <span>Update Status</span>
-                </button>
-                <button
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <X className="h-5 w-5" />
+                  {showCopied === 'payment-id' ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
-          </div>
 
-          <div className="p-6 space-y-6">
-            {/* ✅ NEW: Show failure message if payment failed */}
-            {payment.status === 'FAILED' && payment.failure_message && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-red-900">Failure Reason</h4>
-                    <p className="mt-1 text-sm text-red-700">{payment.failure_message}</p>
-                  </div>
-                </div>
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Shop</div>
+              <div className="text-sm text-gray-900">
+                <div className="font-medium">{payment.shopName}</div>
+                <div className="text-gray-600">@{payment.shopUsername}</div>
               </div>
-            )}
+            </div>
 
-            {/* ✅ NEW: Show transaction URLs if available */}
-            {payment.tx_urls && Array.isArray(payment.tx_urls) && payment.tx_urls.length > 0 && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <ExternalLink className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-blue-900 mb-2">Transaction URLs</h4>
-                    <div className="space-y-2">
-                      {payment.tx_urls.map((url: string, index: number) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <a
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-700 hover:text-blue-800 break-all mr-2 underline"
-                          >
-                            {url}
-                          </a>
-                          <button
-                            onClick={() => handleCopy(url, `tx-url-${index}`)}
-                            className="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex-shrink-0"
-                          >
-                            {showCopied === `tx-url-${index}` ? (
-                              <Check className="h-4 w-4 text-green-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Gateway</div>
+              <div className="text-sm text-gray-900">
+                {gatewayDisplayName}
               </div>
-            )}
+            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Payment ID</div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-900 font-mono break-all mr-2">{payment.id}</div>
-                    <button
-                      onClick={() => handleCopy(payment.id, 'payment-id')}
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                    >
-                      {showCopied === 'payment-id' ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Shop</div>
-                  <div className="space-y-1">
-                    <div className="text-sm text-gray-900">{payment.shopName}</div>
-                    <div className="text-sm text-gray-600">@{payment.shopUsername}</div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Gateway</div>
-                  <div className="text-sm text-gray-900">{payment.gateway}</div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Order ID</div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-900 break-all mr-2">{payment.orderId}</div>
-                    <button
-                      onClick={() => handleCopy(payment.orderId, 'order-id')}
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                    >
-                      {showCopied === 'order-id' ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Status</div>
-                  <div className="mt-1">
-                    {payment.status === 'PAID' && (
-                      <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
-                        <CheckCircle2 className="h-4 w-4" />
-                        <span className="text-sm font-medium">Paid</span>
-                      </div>
-                    )}
-                    {payment.status === 'PENDING' && (
-                      <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg w-fit">
-                        <Clock className="h-4 w-4" />
-                        <span className="text-sm font-medium">Pending</span>
-                      </div>
-                    )}
-                    {payment.status === 'PROCESSING' && (
-                      <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg w-fit">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm font-medium">Processing</span>
-                      </div>
-                    )}
-                    {payment.status === 'FAILED' && (
-                      <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg w-fit">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="text-sm font-medium">Failed</span>
-                      </div>
-                    )}
-                    {payment.status === 'EXPIRED' && (
-                      <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg w-fit">
-                        <XCircle className="h-4 w-4" />
-                        <span className="text-sm font-medium">Expired</span>
-                      </div>
-                    )}
-                    {payment.status === 'CHARGEBACK' && (
-                      <div className="flex items-center space-x-2 text-purple-600 bg-purple-50 px-3 py-1 rounded-lg w-fit">
-                        <RotateCcw className="h-4 w-4" />
-                        <span className="text-sm font-medium">Chargeback</span>
-                      </div>
-                    )}
-                    {payment.status === 'REFUND' && (
-                      <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg w-fit">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="text-sm font-medium">Refund</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
-                  <div className="text-sm text-gray-900">
-                    {format(new Date(payment.createdAt), 'PPpp')}
-                  </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Updated At</div>
-                  <div className="text-sm text-gray-900">
-                    {format(new Date(payment.updatedAt), 'PPpp')}
-                  </div>
-                </div>
+            {/* ✅ UPDATED: Separate amount and currency */}
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Amount</div>
+              <div className="text-lg font-semibold text-gray-900">
+                {payment.amount.toFixed(2)}
               </div>
+            </div>
 
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Amount</div>
-                  <div className="text-2xl font-semibold text-gray-900">
-                    {payment.amount.toLocaleString('en-US', {
-                      style: 'currency',
-                      currency: payment.currency,
-                    })}
-                  </div>
-                </div>
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Currency</div>
+              <div className="text-sm text-gray-900">
+                {payment.currency}
+              </div>
+            </div>
 
-                {payment.sourceCurrency && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Source Currency</div>
-                    <div className="text-sm text-gray-900">{payment.sourceCurrency}</div>
-                  </div>
-                )}
-
-                {payment.customerEmail && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Customer Email</div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-900 break-all mr-2">{payment.customerEmail}</div>
-                      <button
-                        onClick={() => handleCopy(payment.customerEmail!, 'customer-email')}
-                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        {showCopied === 'customer-email' ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Status</div>
+              <div className="mt-1">
+                {payment.status === 'PAID' && (
+                  <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-sm font-medium">Paid</span>
                   </div>
                 )}
-
-                {payment.customerName && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Customer Name</div>
-                    <div className="text-sm text-gray-900">{payment.customerName}</div>
+                {payment.status === 'PENDING' && (
+                  <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg w-fit">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-sm font-medium">Pending</span>
                   </div>
                 )}
-
-                {payment.cardLast4 && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Card Last 4</div>
-                    <div className="text-sm text-gray-900">****{payment.cardLast4}</div>
+                {payment.status === 'PROCESSING' && (
+                  <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg w-fit">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm font-medium">Processing</span>
                   </div>
                 )}
-
-                {payment.paymentMethod && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Payment Method</div>
-                    <div className="text-sm text-gray-900">{payment.paymentMethod}</div>
+                {payment.status === 'FAILED' && (
+                  <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg w-fit">
+                    <AlertCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Failed</span>
                   </div>
                 )}
-
-                {payment.bankId && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Bank ID</div>
-                    <div className="text-sm text-gray-900">{payment.bankId}</div>
+                {payment.status === 'EXPIRED' && (
+                  <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg w-fit">
+                    <XCircle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Expired</span>
                   </div>
                 )}
-
-                {payment.remitterIban && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Remitter IBAN</div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-900 font-mono break-all mr-2">{payment.remitterIban}</div>
-                      <button
-                        onClick={() => handleCopy(payment.remitterIban!, 'remitter-iban')}
-                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        {showCopied === 'remitter-iban' ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
+                {payment.status === 'CHARGEBACK' && (
+                  <div className="flex items-center space-x-2 text-purple-600 bg-purple-50 px-3 py-1 rounded-lg w-fit">
+                    <RotateCcw className="h-4 w-4" />
+                    <span className="text-sm font-medium">Chargeback</span>
                   </div>
                 )}
-
-                {payment.remitterName && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Remitter Name</div>
-                    <div className="text-sm text-gray-900">{payment.remitterName}</div>
-                  </div>
-                )}
-
-                {payment.gatewayPaymentId && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Gateway Payment ID</div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-900 font-mono break-all mr-2">{payment.gatewayPaymentId}</div>
-                      <button
-                        onClick={() => handleCopy(payment.gatewayPaymentId!, 'gateway-payment-id')}
-                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        {showCopied === 'gateway-payment-id' ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {payment.gatewayOrderId && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Gateway Order ID</div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-900 font-mono break-all mr-2">{payment.gatewayOrderId}</div>
-                      <button
-                        onClick={() => handleCopy(payment.gatewayOrderId!, 'gateway-order-id')}
-                        className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                      >
-                        {showCopied === 'gateway-order-id' ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {payment.expiresAt && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Expires At</div>
-                    <div className="text-sm text-gray-900">
-                      {format(new Date(payment.expiresAt), 'PPpp')}
-                    </div>
-                  </div>
-                )}
-
-                {payment.chargebackAmount && (
-                  <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
-                    <div className="text-sm font-medium text-purple-700 mb-1">Chargeback Amount</div>
-                    <div className="text-lg font-semibold text-purple-900">
-                      {payment.chargebackAmount.toFixed(2)} USDT
-                    </div>
-                  </div>
-                )}
-
-                {payment.notes && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <div className="text-sm font-medium text-gray-500 mb-1">Notes</div>
-                    <div className="text-sm text-gray-900">{payment.notes}</div>
+                {payment.status === 'REFUND' && (
+                  <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg w-fit">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-sm font-medium">Refund</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* External Payment URL */}
-            {payment.externalPaymentUrl && (
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
+              <div className="text-sm text-gray-900">
+                {format(new Date(payment.createdAt), 'PPpp')}
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">Updated At</div>
+              <div className="text-sm text-gray-900">
+                {format(new Date(payment.updatedAt), 'PPpp')}
+              </div>
+            </div>
+
+            {/* Additional fields */}
+            {renderField('Order ID', payment.orderId, true, 'order-id')}
+            {renderField('Source Currency', payment.sourceCurrency)}
+            {renderField('Customer Name', payment.customerName)}
+            {renderField('Customer Email', payment.customerEmail, true, 'customer-email')}
+            {renderField('Payment Method', payment.paymentMethod)}
+            {renderField('Card Last 4', payment.cardLast4)}
+            {renderField('Bank ID', payment.bankId)}
+            {renderField('Remitter IBAN', payment.remitterIban, true, 'remitter-iban')}
+            {renderField('Remitter Name', payment.remitterName)}
+            {renderField('Gateway Payment ID', payment.gatewayPaymentId, true, 'gateway-payment-id')}
+            {renderField('Gateway Order ID', payment.gatewayOrderId, true, 'gateway-order-id')}
+
+            {/* Show chargeback amount if status is CHARGEBACK */}
+            {payment.status === 'CHARGEBACK' && payment.chargebackAmount && (
+              <div className="p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <div className="text-sm font-medium text-purple-700 mb-1">Chargeback Amount</div>
+                <div className="text-lg font-semibold text-purple-900">
+                  {payment.chargebackAmount.toFixed(2)} USDT
+                </div>
+              </div>
+            )}
+
+            {/* Show notes if available */}
+            {payment.notes && (
+              <div className="p-4 bg-gray-50 rounded-xl md:col-span-2 lg:col-span-3">
+                <div className="text-sm font-medium text-gray-500 mb-1">Notes</div>
+                <div className="text-sm text-gray-900">{payment.notes}</div>
+              </div>
+            )}
+
+            {/* Expiry information */}
+            {payment.expiresAt && (
               <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">External Payment URL</div>
-                <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-500 mb-1">Expires At</div>
+                <div className="text-sm text-gray-900">
+                  {format(new Date(payment.expiresAt), 'PPpp')}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* URLs and Links */}
+          {payment.externalPaymentUrl && (
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <div className="text-sm font-medium text-gray-500 mb-1">External Payment URL</div>
+              <div className="flex items-center justify-between">
+                <a
+                  href={payment.externalPaymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:text-primary-dark break-all mr-2"
+                >
+                  {payment.externalPaymentUrl}
+                </a>
+                <div className="flex items-center space-x-2 flex-shrink-0">
+                  <button
+                    onClick={() => handleCopy(payment.externalPaymentUrl!, 'external-payment-url')}
+                    className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    {showCopied === 'external-payment-url' ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
                   <a
                     href={payment.externalPaymentUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-primary hover:text-primary-dark break-all mr-2"
+                    className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
                   >
-                    {payment.externalPaymentUrl}
+                    <ArrowUpRight className="h-4 w-4" />
                   </a>
-                  <div className="flex items-center space-x-2 flex-shrink-0">
-                    <button
-                      onClick={() => handleCopy(payment.externalPaymentUrl!, 'external-payment-url')}
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      {showCopied === 'external-payment-url' ? (
-                        <Check className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </button>
-                    <a
-                      href={payment.externalPaymentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <ArrowUpRight className="h-4 w-4" />
-                    </a>
-                  </div>
                 </div>
               </div>
-            )}
-
-            {/* Webhook Logs */}
-            {payment.webhookLogs && payment.webhookLogs.length > 0 && (
-              <div className="border-t border-gray-200 pt-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-4">Webhook Logs</h4>
-                <div className="space-y-3">
-                  {payment.webhookLogs.map((log) => (
-                    <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          log.statusCode >= 200 && log.statusCode < 300 ? 'bg-green-500' : 'bg-red-500'
-                        }`} />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{log.event}</div>
-                          <div className="text-xs text-gray-500">
-                            {format(new Date(log.createdAt), 'MMM d, HH:mm')}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          log.statusCode >= 200 && log.statusCode < 300 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {log.statusCode}
-                        </span>
-                        {log.retryCount > 0 && (
-                          <span className="text-xs text-gray-500">
-                            Retry: {log.retryCount}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </motion.div>
+            </div>
+          )}
+        </div>
       </motion.div>
-
-      {/* Update Status Modal */}
-      <AnimatePresence>
-        {showUpdateModal && (
-          <UpdateStatusModal
-            payment={payment}
-            onClose={() => setShowUpdateModal(false)}
-            onUpdate={onUpdateStatus}
-          />
-        )}
-      </AnimatePresence>
-    </>
+    </motion.div>
   );
 };
 
@@ -790,12 +468,9 @@ const AdminPayments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [gatewayFilter, setGatewayFilter] = useState<string>('all');
-  const [shopFilter, setShopFilter] = useState<string>('');
+  const [currencyFilter, setCurrencyFilter] = useState<string>('all'); // ✅ NEW: Currency filter
+  const [merchantFilter, setMerchantFilter] = useState<string>(''); // ✅ NEW: Merchant filter
   const [selectedPayment, setSelectedPayment] = useState<AdminPayment | null>(null);
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
-  const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
 
@@ -817,24 +492,18 @@ const AdminPayments: React.FC = () => {
       apiFilters.gateway = gatewayFilter;
     }
 
-    if (shopFilter.trim()) {
-      apiFilters.shopId = shopFilter.trim();
+    if (currencyFilter !== 'all') { // ✅ NEW: Currency filter
+      apiFilters.currency = currencyFilter;
     }
 
-    if (startDate) {
-      apiFilters.dateFrom = format(startDate, 'yyyy-MM-dd');
-    }
-
-    if (endDate) {
-      apiFilters.dateTo = format(endDate, 'yyyy-MM-dd');
-    }
-
-    if (searchTerm.trim()) {
+    if (merchantFilter.trim()) { // ✅ NEW: Merchant filter
+      apiFilters.search = merchantFilter.trim();
+    } else if (searchTerm.trim()) {
       apiFilters.search = searchTerm.trim();
     }
 
     return apiFilters;
-  }, [currentPage, pageSize, statusFilter, gatewayFilter, shopFilter, startDate, endDate, searchTerm]);
+  }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter, merchantFilter, searchTerm]);
 
   const { data: paymentsData, isLoading, error } = usePayments(filters);
 
@@ -843,27 +512,49 @@ const AdminPayments: React.FC = () => {
     { value: 'PENDING', label: 'Pending', icon: <Clock className="h-4 w-4 text-yellow-600" /> },
     { value: 'PROCESSING', label: 'Processing', icon: <Loader2 className="h-4 w-4 text-blue-600" /> },
     { value: 'PAID', label: 'Paid', icon: <CheckCircle2 className="h-4 w-4 text-green-600" /> },
+    { value: 'FAILED', label: 'Failed', icon: <AlertCircle className="h-4 w-4 text-red-600" /> },
     { value: 'EXPIRED', label: 'Expired', icon: <XCircle className="h-4 w-4 text-gray-600" /> },
-    { value: 'FAILED', label: 'Failed', icon: <AlertTriangle className="h-4 w-4 text-red-600" /> },
     { value: 'CHARGEBACK', label: 'Chargeback', icon: <RotateCcw className="h-4 w-4 text-purple-600" /> },
-    { value: 'REFUND', label: 'Refund', icon: <AlertTriangle className="h-4 w-4 text-blue-600" /> }
+    { value: 'REFUND', label: 'Refund', icon: <AlertTriangle className="h-4 w-4 text-blue-600" /> },
   ];
 
   const gatewayOptions = [
     { value: 'all', label: 'All Gateways' },
-    { value: 'plisio', label: 'Plisio' },
-    { value: 'rapyd', label: 'Rapyd' },
-    { value: 'noda', label: 'Noda' },
-    { value: 'cointopay', label: 'CoinToPay' },
-    { value: 'klyme_eu', label: 'KLYME EU' },
-    { value: 'klyme_gb', label: 'KLYME GB' },
-    { value: 'klyme_de', label: 'KLYME DE' }
+    { value: '0001', label: 'Gateway 0001' },
+    { value: '0010', label: 'Gateway 0010' },
+    { value: '0100', label: 'Gateway 0100' },
+    { value: '1000', label: 'Gateway 1000' },
+    { value: '1001', label: 'Gateway 1001' },
+    { value: '1010', label: 'Gateway 1010' },
+    { value: '1100', label: 'Gateway 1100' },
+  ];
+
+  // ✅ NEW: Currency options
+  const currencyOptions = [
+    { value: 'all', label: 'All Currencies' },
+    { value: 'USD', label: 'USD' },
+    { value: 'EUR', label: 'EUR' },
+    { value: 'GBP', label: 'GBP' },
+    { value: 'JPY', label: 'JPY' },
+    { value: 'CAD', label: 'CAD' },
+    { value: 'AUD', label: 'AUD' },
+    { value: 'CHF', label: 'CHF' },
+    { value: 'CNY', label: 'CNY' },
+    { value: 'USDT', label: 'USDT' },
+    { value: 'TON', label: 'TON' },
+    { value: 'BTC', label: 'BTC' },
+    { value: 'ETH', label: 'ETH' },
+    { value: 'LTC', label: 'LTC' },
+    { value: 'BCH', label: 'BCH' },
+    { value: 'DOGE', label: 'DOGE' },
+    { value: 'USDC', label: 'USDC' },
   ];
 
   const handleUpdatePaymentStatus = async (id: string, data: UpdatePaymentStatusData) => {
     try {
       await updatePaymentStatusMutation.mutateAsync({ id, data });
       toast.success('Payment status updated successfully');
+      setSelectedPayment(null);
     } catch (error: any) {
       toast.error(error.message || 'Failed to update payment status');
     }
@@ -873,9 +564,9 @@ const AdminPayments: React.FC = () => {
     return (
       <div className="p-6 text-center">
         <div className="text-red-600 mb-2">
-          <AlertTriangle className="h-8 w-8 mx-auto" />
+          <AlertCircle className="h-8 w-8 mx-auto" />
         </div>
-        <p className="text-gray-600">Failed to load payments. Please try again.</p>
+        <p className="text-gray-600">Failed to load admin payments. Please try again.</p>
       </div>
     );
   }
@@ -886,7 +577,7 @@ const AdminPayments: React.FC = () => {
         <div>
           <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Admin Payments</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Manage and monitor all platform payments
+            View and manage all platform payments
           </p>
         </div>
         <motion.button
@@ -901,82 +592,61 @@ const AdminPayments: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="p-4 md:p-6 border-b border-gray-100">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search payments..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-200"
+          {/* ✅ UPDATED: Reorganized filters with shorter searchbar and merchant filter */}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* ✅ UPDATED: Shorter search bar */}
+              <div className="flex-1 lg:max-w-xs">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search payments..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-200"
+                  />
+                </div>
+              </div>
+              
+              {/* ✅ NEW: Merchant filter */}
+              <div className="flex-1 lg:max-w-xs">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search merchant..."
+                    value={merchantFilter}
+                    onChange={(e) => setMerchantFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-200"
+                  />
+                </div>
+              </div>
+
+              {/* Filter dropdowns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <CustomSelect
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  options={statusOptions}
+                  placeholder="All Status"
+                  className="w-full"
+                />
+                <CustomSelect
+                  value={gatewayFilter}
+                  onChange={setGatewayFilter}
+                  options={gatewayOptions}
+                  placeholder="All Gateways"
+                  className="w-full"
+                />
+                <CustomSelect
+                  value={currencyFilter}
+                  onChange={setCurrencyFilter}
+                  options={currencyOptions}
+                  placeholder="All Currencies"
+                  className="w-full"
                 />
               </div>
-            </div>
-            <div className="flex gap-4">
-              <div className="flex gap-4">
-                <div className="relative">
-                  <button
-                    onClick={() => setIsStartDatePickerOpen(true)}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
-                  >
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
-                      {startDate ? format(startDate, 'MMM d, yyyy') : 'Start date'}
-                    </span>
-                  </button>
-                  <AnimatePresence>
-                    {isStartDatePickerOpen && (
-                      <DatePicker
-                        value={startDate}
-                        onChange={(date) => {
-                          setStartDate(date);
-                          setIsStartDatePickerOpen(false);
-                        }}
-                        onClose={() => setIsStartDatePickerOpen(false)}
-                      />
-                    )}
-                  </AnimatePresence>
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setIsEndDatePickerOpen(true)}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
-                  >
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
-                      {endDate ? format(endDate, 'MMM d, yyyy') : 'End date'}
-                    </span>
-                  </button>
-                  <AnimatePresence>
-                    {isEndDatePickerOpen && (
-                      <DatePicker
-                        value={endDate}
-                        onChange={(date) => {
-                          setEndDate(date);
-                          setIsEndDatePickerOpen(false);
-                        }}
-                        onClose={() => setIsEndDatePickerOpen(false)}
-                      />
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-              <CustomSelect
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={statusOptions}
-                placeholder="All Status"
-                className="w-[180px]"
-              />
-              <CustomSelect
-                value={gatewayFilter}
-                onChange={setGatewayFilter}
-                options={gatewayOptions}
-                placeholder="All Gateways"
-                className="w-[180px]"
-              />
             </div>
           </div>
         </div>
@@ -1000,11 +670,12 @@ const AdminPayments: React.FC = () => {
                     <span className="text-sm font-medium text-gray-500">Payment ID</span>
                   </th>
                   <th className="text-left px-6 py-4">
-                    <span className="text-sm font-medium text-gray-500">Shop</span>
+                    <span className="text-sm font-medium text-gray-500">Merchant</span>
                   </th>
                   <th className="text-left px-6 py-4">
                     <span className="text-sm font-medium text-gray-500">Gateway</span>
                   </th>
+                  {/* ✅ UPDATED: Separate amount and currency columns */}
                   <th className="text-left px-6 py-4">
                     <button className="flex items-center space-x-2 text-sm font-medium text-gray-500">
                       <span>Amount</span>
@@ -1012,10 +683,10 @@ const AdminPayments: React.FC = () => {
                     </button>
                   </th>
                   <th className="text-left px-6 py-4">
-                    <span className="text-sm font-medium text-gray-500">Status</span>
+                    <span className="text-sm font-medium text-gray-500">Currency</span>
                   </th>
                   <th className="text-left px-6 py-4">
-                    <span className="text-sm font-medium text-gray-500">Customer</span>
+                    <span className="text-sm font-medium text-gray-500">Status</span>
                   </th>
                   <th className="text-right px-6 py-4"></th>
                 </tr>
@@ -1040,14 +711,19 @@ const AdminPayments: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-900">{payment.gateway}</span>
+                      <span className="text-sm text-gray-900">
+                        {getGatewayDisplayName(payment.gateway)}
+                      </span>
                     </td>
+                    {/* ✅ UPDATED: Separate amount and currency */}
                     <td className="px-6 py-4">
                       <span className="text-sm font-medium text-gray-900">
-                        {payment.amount.toLocaleString('en-US', {
-                          style: 'currency',
-                          currency: payment.currency,
-                        })}
+                        {payment.amount.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-600">
+                        {payment.currency}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -1071,7 +747,7 @@ const AdminPayments: React.FC = () => {
                       )}
                       {payment.status === 'FAILED' && (
                         <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg w-fit">
-                          <AlertTriangle className="h-4 w-4" />
+                          <AlertCircle className="h-4 w-4" />
                           <span className="text-sm font-medium">Failed</span>
                         </div>
                       )}
@@ -1093,12 +769,6 @@ const AdminPayments: React.FC = () => {
                           <span className="text-sm font-medium">Refund</span>
                         </div>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {payment.customerName && <div>{payment.customerName}</div>}
-                        {payment.customerEmail && <div className="text-gray-600">{payment.customerEmail}</div>}
-                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end space-x-2">

@@ -103,6 +103,7 @@ export interface AdminPaymentFilters {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  currency?: string; // ✅ NEW: Added currency filter
 }
 
 export interface AdminPaymentsResponse {
@@ -383,6 +384,7 @@ export function useAdminPayments(filters?: AdminPaymentFilters) {
       if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters?.dateTo) params.append('dateTo', filters.dateTo);
       if (filters?.search) params.append('search', filters.search);
+      if (filters?.currency) params.append('currency', filters.currency); // ✅ NEW: Added currency filter
       
       const queryString = params.toString();
       const response = await api.get<AdminPaymentsResponse>(

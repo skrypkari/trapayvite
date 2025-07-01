@@ -131,12 +131,13 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// Filters - ✅ UPDATED: Added PROCESSING status
+// Filters - ✅ UPDATED: Added PROCESSING status and currency filter
 export interface PaymentFilters {
   page?: number;
   limit?: number;
   status?: 'PENDING' | 'PROCESSING' | 'PAID' | 'EXPIRED' | 'FAILED';
   gateway?: string; // Gateway ID
+  currency?: string; // ✅ NEW: Added currency filter
 }
 
 export interface PayoutFilters {
@@ -271,6 +272,7 @@ export function useShopPayments(filters: PaymentFilters = {}) {
         const gatewayName = convertGatewayIdsToNames([filters.gateway])[0];
         params.append('gateway', gatewayName);
       }
+      if (filters.currency) params.append('currency', filters.currency); // ✅ NEW: Added currency filter
       
       const queryString = params.toString();
       const response = await api.get<PaginatedResponse<ShopPayment>>(
