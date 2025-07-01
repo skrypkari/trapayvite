@@ -112,7 +112,7 @@ const UpdateStatusModal: React.FC<{
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden"
+        className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
       >
         <div className="px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
@@ -915,27 +915,6 @@ const AdminPayments: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-4">
-              <CustomSelect
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={statusOptions}
-                placeholder="All Status"
-                className="w-[180px]"
-              />
-              <CustomSelect
-                value={gatewayFilter}
-                onChange={setGatewayFilter}
-                options={gatewayOptions}
-                placeholder="All Gateways"
-                className="w-[180px]"
-              />
-              <input
-                type="text"
-                placeholder="Shop ID"
-                value={shopFilter}
-                onChange={(e) => setShopFilter(e.target.value)}
-                className="w-[140px] px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-              />
               <div className="flex gap-4">
                 <div className="relative">
                   <button
@@ -984,6 +963,20 @@ const AdminPayments: React.FC = () => {
                   </AnimatePresence>
                 </div>
               </div>
+              <CustomSelect
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={statusOptions}
+                placeholder="All Status"
+                className="w-[180px]"
+              />
+              <CustomSelect
+                value={gatewayFilter}
+                onChange={setGatewayFilter}
+                options={gatewayOptions}
+                placeholder="All Gateways"
+                className="w-[180px]"
+              />
             </div>
           </div>
         </div>

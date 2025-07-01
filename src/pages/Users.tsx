@@ -199,7 +199,7 @@ const MerchantAnalyticsModal: React.FC<{
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-xl shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-xl shadow-xl w-full max-w-6xl min-h-[90vh] max-h-[90vh] overflow-y-auto"
       >
         <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between">
@@ -214,14 +214,6 @@ const MerchantAnalyticsModal: React.FC<{
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <CustomSelect
-                  value={selectedPeriod}
-                  onChange={setSelectedPeriod}
-                  options={periodOptions}
-                  placeholder="Select period"
-                  className="w-[180px]"
-                />
-                
                 {/* Custom Date Range Pickers */}
                 {selectedPeriod === 'custom' && (
                   <div className="flex items-center space-x-2">
@@ -276,6 +268,13 @@ const MerchantAnalyticsModal: React.FC<{
                     </div>
                   </div>
                 )}
+                <CustomSelect
+                  value={selectedPeriod}
+                  onChange={setSelectedPeriod}
+                  options={periodOptions}
+                  placeholder="Select period"
+                  className="w-[180px]"
+                />
               </div>
               
               <button
