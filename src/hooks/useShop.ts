@@ -29,7 +29,7 @@ export interface ShopProfile {
   };
 }
 
-// Payment Interface - ✅ UPDATED: Added failure_message and tx_urls
+// Payment Interface - ✅ UPDATED: Added failure_message, tx_urls, and customer fields
 export interface ShopPayment {
   id: string;
   shopId: string;
@@ -42,6 +42,10 @@ export interface ShopPayment {
   updatedAt?: string;
   customerEmail?: string;
   customerName?: string;
+  // ✅ NEW: Customer location and device info
+  customerCountry?: string;
+  customerIp?: string;
+  customerUa?: string;
   webhookLogs?: WebhookLog[];
   // ✅ NEW: Failure message field
   failure_message?: string;

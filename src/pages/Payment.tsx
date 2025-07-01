@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatCurrency } from '../utils/currency';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { api } from '../lib/api';
 
 interface PaymentData {
   id: string;
@@ -48,6 +49,13 @@ interface PaymentData {
   white_url?: string; 
 }
 
+// ✅ NEW: Interface for customer info update
+interface CustomerInfoUpdate {
+  customerCountry?: string;
+  customerIp?: string;
+  customerUa?: string;
+}
+
 const Payment: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -56,6 +64,111 @@ const Payment: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCopied, setShowCopied] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [customerInfoSent, setCustomerInfoSent] = useState(false); // ✅ NEW: Track if customer info was sent
+
+  // ✅ NEW: Function to get user's IP address
+  const getUserIP = async (): Promise<string | null> => {
+    try {
+      // Try multiple IP services for reliability
+      const ipServices = [
+        'https://api.ipify.org?format=json',
+        'https://ipapi.co/json/',
+        'https://api.ip.sb/jsonip'
+      ];
+
+      for (const service of ipServices) {
+        try {
+          const response = await fetch(service);
+          const data = await response.json();
+          
+          // Different services return IP in different fields
+          const ip = data.ip || data.query || data.ipAddress;
+          if (ip) {
+            console.log('✅ Got user IP:', ip, 'from service:', service);
+            return ip;
+          }
+        } catch (err) {
+          console.warn('❌ Failed to get IP from service:', service, err);
+          continue;
+        }
+      }
+      
+      console.warn('❌ Failed to get IP from all services');
+      return null;
+    } catch (error) {
+      console.error('❌ Error getting user IP:', error);
+      return null;
+    }
+  };
+
+  // ✅ NEW: Function to get user's country from IP
+  const getUserCountry = async (ip: string): Promise<string | null> => {
+    try {
+      // Use ipapi.co for country detection
+      const response = await fetch(`https://ipapi.co/${ip}/json/`);
+      const data = await response.json();
+      
+      const country = data.country_code || data.country;
+      if (country) {
+        console.log('✅ Got user country:', country, 'for IP:', ip);
+        return country;
+      }
+      
+      console.warn('❌ No country data for IP:', ip);
+      return null;
+    } catch (error) {
+      console.error('❌ Error getting user country:', error);
+      return null;
+    }
+  };
+
+  // ✅ NEW: Function to send customer info to server
+  const sendCustomerInfo = async (paymentId: string) => {
+    if (customerInfoSent) {
+      console.log('🔍 Customer info already sent for payment:', paymentId);
+      return;
+    }
+
+    try {
+      console.log('🔍 Collecting customer info for payment:', paymentId);
+      
+      // Get user agent
+      const userAgent = navigator.userAgent;
+      console.log('✅ Got user agent:', userAgent);
+      
+      // Get user IP
+      const userIP = await getUserIP();
+      if (!userIP) {
+        console.warn('❌ Could not get user IP, skipping customer info update');
+        return;
+      }
+      
+      // Get user country
+      const userCountry = await getUserCountry(userIP);
+      
+      // Prepare customer info
+      const customerInfo: CustomerInfoUpdate = {
+        customerIp: userIP,
+        customerUa: userAgent
+      };
+      
+      if (userCountry) {
+        customerInfo.customerCountry = userCountry;
+      }
+      
+      console.log('🔍 Sending customer info:', customerInfo);
+      
+      // Send to server
+      await api.put(`/admin/payments/${paymentId}/customer`, customerInfo);
+      
+      console.log('✅ Customer info sent successfully');
+      setCustomerInfoSent(true);
+      
+    } catch (error) {
+      console.error('❌ Failed to send customer info:', error);
+      // Don't show error to user as this is background functionality
+    }
+  };
 
   // Fetch payment data
   useEffect(() => {
@@ -76,6 +189,9 @@ const Payment: React.FC = () => {
 
         if (data.success && data.result) {
           setPaymentData(data.result);
+          
+          // ✅ NEW: Send customer info after payment data is loaded
+          sendCustomerInfo(data.result.id);
         } else {
           throw new Error('Invalid response format');
         }

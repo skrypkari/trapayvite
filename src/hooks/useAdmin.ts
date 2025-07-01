@@ -51,7 +51,7 @@ export interface AdminStatsApiResponse {
   };
 }
 
-// Admin Payment Types - ✅ UPDATED: Added CHARGEBACK and REFUND statuses, failure_message and tx_urls
+// Admin Payment Types - ✅ UPDATED: Added CHARGEBACK and REFUND statuses, failure_message, tx_urls, and customer fields
 export interface AdminPayment {
   id: string;
   shopId: string;
@@ -68,6 +68,10 @@ export interface AdminPayment {
   gatewayPaymentId?: string;
   customerEmail?: string;
   customerName?: string;
+  // ✅ NEW: Customer location and device info
+  customerCountry?: string;
+  customerIp?: string;
+  customerUa?: string;
   cardLast4?: string;
   paymentMethod?: string;
   bankId?: string;
