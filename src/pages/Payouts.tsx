@@ -379,21 +379,6 @@ const Payouts: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-4">
-              <CustomSelect
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={statusOptions}
-                placeholder="All Status"
-                className="w-[180px]"
-              />
-              <CustomSelect
-                value={networkFilter}
-                onChange={setNetworkFilter}
-                options={networkOptions}
-                placeholder="All Networks"
-                className="w-[180px]"
-              />
-              <div className="flex gap-4">
                 <div className="relative">
                   <button
                     onClick={() => setIsStartDatePickerOpen(true)}
@@ -441,6 +426,22 @@ const Payouts: React.FC = () => {
                   </AnimatePresence>
                 </div>
               </div>
+            <div className="flex gap-4">
+              <CustomSelect
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={statusOptions}
+                placeholder="All Status"
+                className="w-[180px]"
+              />
+              <CustomSelect
+                value={networkFilter}
+                onChange={setNetworkFilter}
+                options={networkOptions}
+                placeholder="All Networks"
+                className="w-[180px]"
+              />
+              
             </div>
           </div>
         </div>
