@@ -18,7 +18,7 @@ export interface ShopProfile {
   gatewaySettings?: {
     [gatewayName: string]: { // Gateway names as keys from server
       commission: number;
-      payoutDelay: number;
+      // ✅ REMOVED: payoutDelay field as per API changes
     };
   };
   wallets?: {
@@ -29,7 +29,7 @@ export interface ShopProfile {
   };
 }
 
-// Payment Interface - ✅ UPDATED: Added PROCESSING status, failure_message and tx_urls
+// Payment Interface - ✅ UPDATED: Added failure_message and tx_urls
 export interface ShopPayment {
   id: string;
   shopId: string;

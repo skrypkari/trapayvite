@@ -10,8 +10,9 @@ export interface PaymentLink {
   currency: string;
   sourceCurrency?: string | null; // Для Plisio
   gateway: string; // Gateway name from server (plisio, noda, etc.)
-  maxPayments?: number;
+  type: 'SINGLE' | 'MULTI'; // ✅ UPDATED: Changed from maxPayments to type
   currentPayments?: number;
+  remainingPayments?: number; // ✅ NEW: Added remainingPayments field
   status: string; // 'ACTIVE' | 'INACTIVE' | 'EXPIRED'
   expiresAt?: string | null;
   successUrl?: string | null;
@@ -33,7 +34,7 @@ export interface CreatePaymentLinkData {
   currency: string;
   sourceCurrency?: string; // Для Plisio (Gateway 0001)
   gateway: string; // Gateway ID (0001, 0010, etc.)
-  maxPayments?: number;
+  type: 'SINGLE' | 'MULTI'; // ✅ UPDATED: Changed from maxPayments to type
   expiresAt?: string;
 }
 
@@ -42,7 +43,7 @@ export interface UpdatePaymentLinkData {
   currency?: string;
   sourceCurrency?: string;
   gateway?: string; // Gateway ID
-  maxPayments?: number;
+  type?: 'SINGLE' | 'MULTI'; // ✅ UPDATED: Changed from maxPayments to type
   expiresAt?: string;
 }
 
@@ -73,8 +74,9 @@ const transformPaymentLink = (serverLink: any): PaymentLink => {
     currency: serverLink.currency,
     sourceCurrency: serverLink.sourceCurrency,
     gateway: serverLink.gateway, // Keep gateway name from server
-    maxPayments: serverLink.maxPayments,
+    type: serverLink.type || 'SINGLE', // ✅ UPDATED: Use type instead of maxPayments
     currentPayments: serverLink.currentPayments,
+    remainingPayments: serverLink.remainingPayments, // ✅ NEW: Added remainingPayments
     status: serverLink.status,
     expiresAt: serverLink.expiresAt,
     successUrl: serverLink.successUrl,
@@ -161,12 +163,12 @@ export function useCreatePaymentLink() {
     mutationFn: async (data: CreatePaymentLinkData) => {
       console.log('Creating payment link with data:', data); // Debug log
 
-      // ✅ FIXED: Send gateway ID directly, not name
+      // ✅ UPDATED: Send type instead of maxPayments
       const requestData: any = {
         amount: data.amount,
         currency: data.currency,
         gateway: data.gateway, // Send gateway ID directly (0001, 0010, etc.)
-        maxPayments: data.maxPayments
+        type: data.type // ✅ UPDATED: Use type instead of maxPayments
       };
 
       // Add sourceCurrency for Plisio (Gateway 0001)
@@ -202,7 +204,7 @@ export function useUpdatePaymentLink() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdatePaymentLinkData }) => {
-      // ✅ FIXED: Send gateway ID directly, not name
+      // ✅ UPDATED: Send type instead of maxPayments
       const dataForApi = {
         ...data,
         gateway: data.gateway // Send gateway ID directly if provided

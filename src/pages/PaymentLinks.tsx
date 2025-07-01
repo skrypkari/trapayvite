@@ -212,7 +212,7 @@ const CreateLinkModal: React.FC<{
     amount: undefined,
     currency: 'USD',
     gateway: '',
-    maxPayments: 1
+    type: 'SINGLE' // ✅ UPDATED: Default to SINGLE type
   });
   const [expiryDate, setExpiryDate] = useState<Date | null>(null);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -289,7 +289,7 @@ const CreateLinkModal: React.FC<{
         amount: undefined,
         currency: 'USD',
         gateway: shopGateways?.[0] || '',
-        maxPayments: 1
+        type: 'SINGLE'
       });
       setExpiryDate(null);
     } catch (error: any) {
@@ -388,20 +388,25 @@ const CreateLinkModal: React.FC<{
                   </div>
                 </div>
 
+                {/* ✅ UPDATED: Type selection instead of maxPayments */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Payments
+                    Link Type *
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.maxPayments || ''}
-                    onChange={(e) => setFormData({ ...formData, maxPayments: e.target.value ? parseInt(e.target.value) : 1 })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                    placeholder="1"
+                  <CustomSelect
+                    value={formData.type}
+                    onChange={(value) => setFormData({ ...formData, type: value as 'SINGLE' | 'MULTI' })}
+                    options={[
+                      { value: 'SINGLE', label: 'Single Use - Can be used only once' },
+                      { value: 'MULTI', label: 'Multi Use - Can be used multiple times' }
+                    ]}
+                    placeholder="Select link type"
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Maximum number of payments allowed (1 = single use)
+                    {formData.type === 'SINGLE' 
+                      ? 'This link will become inactive after one successful payment'
+                      : 'This link can be used for multiple payments'
+                    }
                   </p>
                 </div>
               </div>
@@ -641,11 +646,33 @@ const LinkPreviewModal: React.FC<{
             </div>
 
             <div className="space-y-4">
+              {/* ✅ UPDATED: Show type and usage information */}
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <div className="text-sm font-medium text-gray-500 mb-1">Link Type</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {link.type === 'SINGLE' ? 'Single Use' : 'Multi Use'}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {link.type === 'SINGLE' 
+                    ? 'Can be used only once'
+                    : 'Can be used multiple times'
+                  }
+                </div>
+              </div>
+
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Usage</div>
                 <div className="text-lg font-semibold text-gray-900">
-                  {link.currentPayments || 0} / {link.maxPayments || 'Unlimited'}
+                  {link.currentPayments || 0} payments
                 </div>
+                {link.remainingPayments !== undefined && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {link.type === 'SINGLE' 
+                      ? `${link.remainingPayments > 0 ? 'Available' : 'Used'}`
+                      : `${link.remainingPayments} remaining`
+                    }
+                  </div>
+                )}
               </div>
 
               {link.sourceCurrency && (
@@ -825,7 +852,7 @@ const PaymentLinks: React.FC = () => {
                   <th className="text-left p-4 text-sm font-medium text-gray-500">Amount</th>
                   <th className="text-left p-4 text-sm font-medium text-gray-500">Currency</th>
                   <th className="text-left p-4 text-sm font-medium text-gray-500">Gateway</th>
-                  <th className="text-left p-4 text-sm font-medium text-gray-500">Usage</th>
+                  <th className="text-left p-4 text-sm font-medium text-gray-500">Type</th> {/* ✅ UPDATED: Changed from Usage to Type */}
                   <th className="text-left p-4 text-sm font-medium text-gray-500">Status</th>
                   <th className="text-left p-4 text-sm font-medium text-gray-500">Created</th>
                   <th className="text-right p-4 text-sm font-medium text-gray-500">Actions</th>
@@ -861,10 +888,25 @@ const PaymentLinks: React.FC = () => {
                           {gatewayDisplayName}
                         </span>
                       </td>
+                      {/* ✅ UPDATED: Show type instead of usage */}
                       <td className="p-4">
-                        <span className="text-sm text-gray-600">
-                          {link.currentPayments || 0} / {link.maxPayments || '∞'}
-                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            link.type === 'SINGLE' 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {link.type === 'SINGLE' ? 'Single Use' : 'Multi Use'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {link.currentPayments || 0} payments
+                          {link.remainingPayments !== undefined && link.type === 'SINGLE' && (
+                            <span className="ml-1">
+                              ({link.remainingPayments > 0 ? 'available' : 'used'})
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4">
                         <div className={`inline-flex items-center space-x-2 px-3 py-1 rounded-lg ${

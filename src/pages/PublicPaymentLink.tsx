@@ -23,8 +23,9 @@ interface PublicPaymentLinkData {
   currency: string;
   sourceCurrency?: string;
   gateway: string;
-  maxPayments: number;
+  type: 'SINGLE' | 'MULTI'; // ✅ UPDATED: Changed from maxPayments to type
   currentPayments: number;
+  remainingPayments: number; // ✅ NEW: Added remainingPayments field
   status: string;
   expiresAt?: string;
   successUrl?: string;
@@ -90,9 +91,9 @@ const PublicPaymentLink: React.FC = () => {
           return;
         }
 
-        // ✅ FIXED: Правильная проверка лимитов - только если maxPayments больше 0
-        if (data.maxPayments > 0 && data.currentPayments >= data.maxPayments) {
-          setError('This payment link has reached its usage limit');
+        // ✅ UPDATED: Check usage limits based on type
+        if (data.type === 'SINGLE' && data.remainingPayments <= 0) {
+          setError('This single-use payment link has already been used');
           setIsLoading(false);
           return;
         }
@@ -222,6 +223,20 @@ const PublicPaymentLink: React.FC = () => {
                   {linkData.sourceCurrency && (
                     <div className="text-sm opacity-75 mt-1">via {linkData.sourceCurrency}</div>
                   )}
+                </div>
+                
+                {/* ✅ UPDATED: Show link type and usage information */}
+                <div className="flex items-center justify-center space-x-4 text-sm opacity-90">
+                  <div className="flex items-center space-x-1">
+                    <span>{linkData.type === 'SINGLE' ? 'Single Use' : 'Multi Use'}</span>
+                  </div>
+                  <span>•</span>
+                  <div className="flex items-center space-x-1">
+                    <span>{linkData.currentPayments} payments</span>
+                    {linkData.type === 'SINGLE' && (
+                      <span>({linkData.remainingPayments > 0 ? 'available' : 'used'})</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
