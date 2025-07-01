@@ -128,6 +128,99 @@ export interface UpdatePaymentStatusData {
   chargebackAmount?: number; // Required for CHARGEBACK status
 }
 
+// ===== NEW: PAYOUT TYPES =====
+
+export interface AdminPayoutStats {
+  totalPayout: number;
+  awaitingPayout: number;
+  thisMonth: number;
+  availableBalance: number;
+}
+
+export interface AdminPayoutMerchant {
+  id: string;
+  fullName: string;
+  username: string;
+  telegramId: string;
+  merchantUrl: string;
+  totalAmountUSDT: number;
+  totalAmountAfterCommissionUSDT: number;
+  paymentsCount: number;
+  oldestPaymentDate: string;
+  gatewayBreakdown: Array<{
+    gateway: string;
+    count: number;
+    amountUSDT: number;
+    amountAfterCommissionUSDT: number;
+    commission: number;
+  }>;
+  wallets: {
+    usdtPolygonWallet?: string;
+    usdtTrcWallet?: string;
+    usdtErcWallet?: string;
+    usdcPolygonWallet?: string;
+  };
+}
+
+export interface AdminPayout {
+  id: string;
+  shopId: string;
+  shopName: string;
+  shopUsername: string;
+  amount: number;
+  network: string;
+  status: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  walletAddress: string;
+  txid?: string;
+  notes?: string;
+  createdAt: string;
+  paidAt?: string;
+}
+
+export interface AdminPayoutMerchantsFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  minAmount?: number;
+}
+
+export interface AdminPayoutFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  network?: string;
+  status?: 'PENDING' | 'COMPLETED' | 'REJECTED';
+}
+
+export interface AdminPayoutMerchantsResponse {
+  success: boolean;
+  merchants: AdminPayoutMerchant[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface AdminPayoutsResponse {
+  success: boolean;
+  payouts: AdminPayout[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface CreatePayoutData {
+  shopId: string;
+  amount: number;
+  network: string;
+  notes?: string;
+}
+
 // ===== QUERY KEYS =====
 
 export const adminKeys = {
@@ -138,6 +231,12 @@ export const adminKeys = {
   payments: () => [...adminKeys.all, 'payments'] as const,
   paymentsList: (filters?: AdminPaymentFilters) => [...adminKeys.payments(), 'list', filters] as const,
   payment: (id: string) => [...adminKeys.payments(), 'detail', id] as const,
+  payouts: () => [...adminKeys.all, 'payouts'] as const,
+  payoutStats: () => [...adminKeys.payouts(), 'stats'] as const,
+  payoutMerchants: () => [...adminKeys.payouts(), 'merchants'] as const,
+  payoutMerchantsList: (filters?: AdminPayoutMerchantsFilters) => [...adminKeys.payoutMerchants(), 'list', filters] as const,
+  payoutsList: (filters?: AdminPayoutFilters) => [...adminKeys.payouts(), 'list', filters] as const,
+  payout: (id: string) => [...adminKeys.payouts(), 'detail', id] as const,
 };
 
 // ===== ADMIN AUTH HOOKS =====
@@ -268,6 +367,104 @@ export function useUpdatePaymentStatus() {
   });
 }
 
+// ===== ADMIN PAYOUT HOOKS =====
+
+// Hook to get admin payout statistics
+export function useAdminPayoutStats() {
+  return useQuery({
+    queryKey: adminKeys.payoutStats(),
+    queryFn: async () => {
+      const response = await api.get<{ success: boolean; result: AdminPayoutStats }>('/admin/payouts/stats');
+      return response.result;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+// Hook to get merchants awaiting payout
+export function useAdminPayoutMerchants(filters?: AdminPayoutMerchantsFilters) {
+  return useQuery({
+    queryKey: adminKeys.payoutMerchantsList(filters),
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.minAmount) params.append('minAmount', filters.minAmount.toString());
+      
+      const queryString = params.toString();
+      const response = await api.get<AdminPayoutMerchantsResponse>(
+        `/admin/payouts/merchants${queryString ? `?${queryString}` : ''}`
+      );
+      
+      return response;
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
+// Hook to get admin payouts with filters and pagination
+export function useAdminPayouts(filters?: AdminPayoutFilters) {
+  return useQuery({
+    queryKey: adminKeys.payoutsList(filters),
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.network) params.append('network', filters.network);
+      if (filters?.status) params.append('status', filters.status);
+      
+      const queryString = params.toString();
+      const response = await api.get<AdminPayoutsResponse>(
+        `/admin/payouts${queryString ? `?${queryString}` : ''}`
+      );
+      
+      return response;
+    },
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+}
+
+// Hook to create a new payout
+export function useCreatePayout() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: CreatePayoutData) => {
+      const response = await api.post<{ success: boolean; result: AdminPayout }>('/admin/payouts', data);
+      return response.result;
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: adminKeys.payouts() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.payoutMerchants() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.payoutStats() });
+    },
+  });
+}
+
+// Hook to delete a payout
+export function useDeletePayout() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/admin/payouts/${id}`);
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: adminKeys.payouts() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.payoutMerchants() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.payoutStats() });
+    },
+  });
+}
+
 // ===== MAIN ADMIN HOOK =====
 
 // Main hook that provides all admin functionality
@@ -286,6 +483,13 @@ export function useAdmin() {
     usePayment: useAdminPayment,
     useUpdatePaymentStatus: useUpdatePaymentStatus,
     
+    // Payouts
+    usePayoutStats: useAdminPayoutStats,
+    usePayoutMerchants: useAdminPayoutMerchants,
+    usePayouts: useAdminPayouts,
+    useCreatePayout: useCreatePayout,
+    useDeletePayout: useDeletePayout,
+    
     // Query keys for external use
     queryKeys: adminKeys,
   };
@@ -297,3 +501,8 @@ export { useAdminDashboardStats as useAdminStatsOnly };
 export { useAdminPayments as useAdminPaymentsOnly };
 export { useAdminPayment as useAdminPaymentOnly };
 export { useUpdatePaymentStatus as useUpdatePaymentStatusOnly };
+export { useAdminPayoutStats as useAdminPayoutStatsOnly };
+export { useAdminPayoutMerchants as useAdminPayoutMerchantsOnly };
+export { useAdminPayouts as useAdminPayoutsOnly };
+export { useCreatePayout as useCreatePayoutOnly };
+export { useDeletePayout as useDeletePayoutOnly };
