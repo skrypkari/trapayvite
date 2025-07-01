@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatCurrency } from '../utils/currency';
+import { getGatewayDisplayName } from '../utils/gatewayMapping';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 interface PaymentData {
@@ -170,6 +171,12 @@ const Payment: React.FC = () => {
     return paymentData?.order_id || paymentData?.gateway_order_id || paymentData?.id ||'';
   };
 
+  // ✅ FIXED: Get gateway display name using utility function
+  const getGatewayName = () => {
+    if (!paymentData?.gateway) return 'Unknown Gateway';
+    return getGatewayDisplayName(paymentData.gateway);
+  };
+
   // Маппинг для source_currency
   const cryptoCurrencyLabels: Record<string, string> = {
     USDT_TRX: 'USDT TRC-20',
@@ -270,6 +277,10 @@ const Payment: React.FC = () => {
                         by {paymentData.merchant_brand}
                       </div>
                     )}
+                    {/* ✅ FIXED: Show gateway name instead of ID */}
+                    <div className="text-sm opacity-75 truncate mt-1">
+                      via {getGatewayName()}
+                    </div>
                   </div>
                   <div className="text-right ml-4 flex-shrink-0">
                     <div className="text-lg font-semibold">
@@ -378,7 +389,7 @@ const Payment: React.FC = () => {
                         <div>
                           <h2 className="text-xl font-semibold text-gray-900 mb-2">Complete Payment</h2>
                           <p className="text-gray-600 text-sm">
-                            Click the button below to proceed with your payment
+                            Click the button below to proceed with your payment via {getGatewayName()}
                           </p>
                         </div>
 
@@ -412,7 +423,7 @@ const Payment: React.FC = () => {
                         >
                           <Loader2 className="h-12 w-12 text-white" />
                         </motion.div>
-                      </motion.div>
+                      </div>
                     </div>
 
                     <div>

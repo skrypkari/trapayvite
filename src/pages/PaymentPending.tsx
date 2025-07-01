@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Clock, AlertCircle, CheckCircle2, Calendar, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../lib/api';
+import { getGatewayDisplayName } from '../utils/gatewayMapping';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 interface PaymentStatusResponse {
@@ -115,6 +116,12 @@ const PaymentPending: React.FC = () => {
     };
   }, [internalId]);
 
+  // ✅ FIXED: Get gateway display name
+  const getGatewayName = () => {
+    if (!paymentData?.gateway) return 'Unknown Gateway';
+    return getGatewayDisplayName(paymentData.gateway);
+  };
+
   // Loading state
   if (isLoading && !paymentData) {
     return (
@@ -212,6 +219,11 @@ const PaymentPending: React.FC = () => {
                           <span className="font-medium text-blue-600 capitalize">
                             {paymentData.status.toLowerCase()}
                           </span>
+                        </div>
+                        {/* ✅ FIXED: Show gateway name instead of ID */}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-500">Gateway:</span>
+                          <span className="text-gray-900">{getGatewayName()}</span>
                         </div>
                         {paymentData.payment_method && (
                           <div className="flex justify-between text-sm">
