@@ -374,7 +374,7 @@ export function useAdminPayoutStats() {
   return useQuery({
     queryKey: adminKeys.payoutStats(),
     queryFn: async () => {
-      const response = await api.get<{ success: boolean; result: AdminPayoutStats }>('/admin/payouts/stats');
+      const response = await api.get<{ success: boolean; result: AdminPayoutStats }>('/admin/payout/stats');
       return response.result;
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -395,7 +395,7 @@ export function useAdminPayoutMerchants(filters?: AdminPayoutMerchantsFilters) {
       
       const queryString = params.toString();
       const response = await api.get<AdminPayoutMerchantsResponse>(
-        `/admin/payouts/merchants${queryString ? `?${queryString}` : ''}`
+        `/admin/payout/merchants${queryString ? `?${queryString}` : ''}`
       );
       
       return response;
@@ -454,7 +454,7 @@ export function useDeletePayout() {
   
   return useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/admin/payouts/${id}`);
+      await api.delete(`/admin/payout/${id}`);
     },
     onSuccess: () => {
       // Invalidate relevant queries
