@@ -98,19 +98,19 @@ export interface DailyPayments {
 export interface ShopStatistics {
   totalPayments: number;
   successfulPayments: number;
-  totalRevenue: number;
-  conversionRate: number;
-  paymentsByStatus?: {
+  totalAmount: number;
+  averageAmount: number;
+  paymentsByStatus: {
     PAID: number;
     PENDING: number;
     PROCESSING: number; // ✅ NEW: Added PROCESSING status
     FAILED: number;
     EXPIRED: number;
   };
-  paymentsByGateway?: Record<string, number>; // Gateway IDs as keys
+  paymentsByGateway: Record<string, number>; // Gateway IDs as keys
   recentPayments: ShopPayment[];
-  dailyRevenue?: DailyRevenue[]; // New field for chart data
-  dailyPayments?: DailyPayments[]; // New field for chart data
+  dailyRevenue: DailyRevenue[]; // New field for chart data
+  dailyPayments: DailyPayments[]; // New field for chart data
 }
 
 // Pagination Interface
@@ -411,23 +411,24 @@ export function useShopStatistics(period: string = '30d') {
       );
       const stats = response.result;
       
-      // Convert gateway names to IDs in paymentsByGateway
-      const paymentsByGatewayWithIds: Record<string, number> = {};
-      Object.entries(stats.paymentsByGateway).forEach(([gatewayName, count]) => {
-        const gatewayId = convertGatewayNamesToIds([gatewayName])[0];
-        paymentsByGatewayWithIds[gatewayId] = count;
-      });
-      
-      // Convert gateway names to IDs in recent payments
-      const recentPaymentsWithIds = stats.recentPayments.map(payment => ({
-        ...payment,
-        gateway: convertGatewayNamesToIds([payment.gateway])[0]
-      }));
+      console.log('🔍 Shop statistics API response:', stats); // Debug log
       
       return {
-        ...stats,
-        paymentsByGateway: paymentsByGatewayWithIds,
-        recentPayments: recentPaymentsWithIds
+        totalPayments: stats.totalPayments || 0,
+        successfulPayments: stats.successfulPayments || 0,
+        totalRevenue: stats.totalRevenue || 0,
+        conversionRate: stats.conversionRate || 0,
+        paymentsByStatus: stats.paymentsByStatus || {
+          PAID: 0,
+          PENDING: 0,
+          PROCESSING: 0,
+          FAILED: 0,
+          EXPIRED: 0
+        },
+        paymentsByGateway: stats.paymentsByGateway || {},
+        recentPayments: stats.recentPayments || [],
+        dailyRevenue: stats.dailyRevenue || [],
+        dailyPayments: stats.dailyPayments || []
       };
     },
     staleTime: 1000 * 60 * 2, // 2 minutes
