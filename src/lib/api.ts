@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosResponse } from 'axios';
 
-const API_BASE_URL = 'https://api.trapay.uk/api';
+const API_BASE_URL = 'https://apitest.trapay.uk/api';
 
 export class ApiError extends Error {
   status: number;

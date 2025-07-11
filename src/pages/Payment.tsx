@@ -180,7 +180,7 @@ const Payment: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`https://api.trapay.uk/api/payments/${id}`);
+        const response = await fetch(`https://apitest.trapay.uk/api/payments/${id}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -234,7 +234,7 @@ const Payment: React.FC = () => {
 
     const pollStatus = async () => {
       try {
-        const response = await fetch(`https://api.trapay.uk/api/payments/${id}`);
+        const response = await fetch(`https://apitest.trapay.uk/api/payments/${id}`);
         const data = await response.json();
 
         if (data.success && data.result) {

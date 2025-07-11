@@ -10,7 +10,6 @@ export interface User {
   commision: number; // Note: keeping the typo from server response (commission) - DEPRECATED, use gatewaySettings
   shopUrl: string; // Mapped from merchantUrl
   paymentGateways: string[]; // Gateway IDs (0001, 0010, etc.) - mapped from gateways
-  payoutDelay: number; // DEPRECATED, use gatewaySettings
   publicKey: string;
   status: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
   createdAt: string;
@@ -20,9 +19,8 @@ export interface User {
   lastLogin?: string;
   // New fields for gateway-specific settings
   gatewaySettings?: {
-    [gatewayId: string]: { // Gateway IDs as keys
+    [gatewayId: string]: {
       commission: number;
-      payoutDelay: number;
     };
   };
   // New wallets field
@@ -35,9 +33,8 @@ export interface User {
 }
 
 export interface GatewaySettings {
-  [gatewayId: string]: { // Gateway IDs as keys
+  [gatewayId: string]: {
     commission: number;
-    payoutDelay: number;
   };
 }
 
@@ -160,7 +157,6 @@ const transformUser = (serverUser: any): User => {
     commision: serverUser.commission || 0, // Map commission to commision (keeping typo) - DEPRECATED
     shopUrl: serverUser.merchantUrl || '', // Map merchantUrl to shopUrl
     paymentGateways: transformedGateways, // Map gateways to paymentGateways and convert to IDs
-    payoutDelay: serverUser.payoutDelay || 0, // DEPRECATED
     publicKey: serverUser.publicKey || '',
     status: serverUser.status || 'PENDING',
     createdAt: serverUser.createdAt || new Date().toISOString(),
@@ -170,7 +166,7 @@ const transformUser = (serverUser: any): User => {
       Object.entries(serverUser.gatewaySettings).forEach(([gatewayName, settings]) => {
         const gatewayId = convertGatewayNamesToIds([gatewayName])[0];
         if (gatewayId) {
-          gatewaySettingsWithIds[gatewayId] = settings;
+          gatewaySettingsWithIds[gatewayId] = { commission: settings.commission };
         }
       });
       return gatewaySettingsWithIds;
@@ -254,12 +250,6 @@ export const validateUserData = (data: EditUserFormData): ValidationError[] => {
           message: `Commission for Gateway ${gatewayId} must be between 0 and 100` 
         });
       }
-      if (settings.payoutDelay < 0 || settings.payoutDelay > 365) {
-        errors.push({ 
-          field: `gatewaySettings.${gatewayId}.payoutDelay`, 
-          message: `Payout delay for Gateway ${gatewayId} must be between 0 and 365 days` 
-        });
-      }
     });
   }
 
@@ -307,7 +297,7 @@ export function useCreateUser() {
       Object.entries(user.gatewaySettings).forEach(([gatewayId, settings]) => {
         const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
         if (gatewayName) {
-          gatewaySettingsForApi[gatewayName] = settings;
+          gatewaySettingsForApi[gatewayName] = { commission: settings.commission };
         }
       });
       
@@ -446,7 +436,7 @@ export function useUpdateUser() {
         Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
           const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
           if (gatewayName) {
-            gatewaySettingsForApi[gatewayName] = settings;
+            gatewaySettingsForApi[gatewayName] = { commission: settings.commission };
           }
         });
       }

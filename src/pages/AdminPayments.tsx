@@ -79,7 +79,7 @@ const PaymentDetailsModal: React.FC<{
     setIsEditing(false);
   };
 
-  const gatewayDisplayName = getGatewayDisplayName(payment.gateway);
+  const gatewayDisplayName = payment.gateway;
 
   // Helper function to render field if value exists
   const renderField = (label: string, value: any, copyable = false, copyId?: string, icon?: React.ReactNode) => {
@@ -317,8 +317,8 @@ const PaymentDetailsModal: React.FC<{
                 <div className="text-sm font-medium text-purple-700">Shop</div>
               </div>
               <div className="text-sm text-purple-900">
-                <div className="font-medium">{payment.shop.name}</div>
-                <div className="text-purple-700">@{payment.shop.username}</div>
+                <div className="font-medium">{payment.shopName}</div>
+                <div className="text-purple-700">@{payment.shopUsername}</div>
               </div>
             </div>
 
@@ -558,13 +558,13 @@ const AdminPayments: React.FC = () => {
 
   const gatewayOptions = [
     { value: 'all', label: 'All Gateways' },
-    { value: '0001', label: 'Gateway 0001' },
-    { value: '0010', label: 'Gateway 0010' },
-    { value: '0100', label: 'Gateway 0100' },
-    { value: '1000', label: 'Gateway 1000' },
-    { value: '1001', label: 'Gateway 1001' },
-    { value: '1010', label: 'Gateway 1010' },
-    { value: '1100', label: 'Gateway 1100' },
+    { value: '0001', label: 'Plisio' },
+    { value: '0010', label: 'Rapyd' },
+    { value: '0100', label: 'CoinToPay' },
+    { value: '1000', label: 'Noda' },
+    { value: '1001', label: 'KLYME_EU' },
+    { value: '1010', label: 'KLYME_GB' },
+    { value: '1100', label: 'KLYME_DE' },
   ];
 
   const currencyOptions = [
@@ -597,7 +597,7 @@ const AdminPayments: React.FC = () => {
         if (payment.shopId && payment.shop && !merchants.has(payment.shopId)) {
           merchants.set(payment.shopId, {
             value: payment.shopId,
-            label: `${payment.shop.name} (@${payment.shop.username})`,
+            label: `${payment.shopName} (@${payment.shopUsername})`,
             icon: <Building2 className="h-4 w-4 text-gray-500" />
           });
         }
@@ -759,13 +759,13 @@ const AdminPayments: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{payment.shop.name}</div>
-                        <div className="text-xs text-gray-500">@{payment.shop.username}</div>
+                        <div className="text-sm font-medium text-gray-900">{payment.shopName}</div>
+                        <div className="text-xs text-gray-500">@{payment.shopUsername}</div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-900 bg-blue-100 px-2 py-1 rounded">
-                        {getGatewayDisplayName(payment.gateway)}
+                        {payment.gateway}
                       </span>
                     </td>
                     <td className="px-6 py-4">

@@ -29,14 +29,12 @@ export interface AdminAuthResponse {
 export interface AdminStatsApiResponse {
   success: boolean;
   result: {
-    overview: {
       totalShops: number;
       activeShops: number;
       totalPayments: number;
       successfulPayments: number;
       totalRevenue: number;
       conversionRate: number;
-    };
     recentPayments: Array<{
       id: string;
       amount: number;
@@ -357,7 +355,7 @@ export function useAdminDashboardStats(period: string = '30d') {
       console.log('🔍 Admin stats API response:', response);
       
       // ✅ FIXED: Transform API response to match expected interface
-      const overview = response.result.overview;
+      const overview = response.result;
       const transformedStats: AdminDashboardStats = {
         totalRevenue: overview.totalRevenue,
         totalUsers: overview.totalShops, // Map totalShops to totalUsers
