@@ -98,19 +98,19 @@ export interface DailyPayments {
 export interface ShopStatistics {
   totalPayments: number;
   successfulPayments: number;
-  totalAmount: number;
-  averageAmount: number;
-  paymentsByStatus: {
+  totalRevenue: number;
+  conversionRate: number;
+  paymentsByStatus?: {
     PAID: number;
     PENDING: number;
     PROCESSING: number; // ✅ NEW: Added PROCESSING status
     FAILED: number;
     EXPIRED: number;
   };
-  paymentsByGateway: Record<string, number>; // Gateway IDs as keys
+  paymentsByGateway?: Record<string, number>; // Gateway IDs as keys
   recentPayments: ShopPayment[];
-  dailyRevenue: DailyRevenue[]; // New field for chart data
-  dailyPayments: DailyPayments[]; // New field for chart data
+  dailyRevenue?: DailyRevenue[]; // New field for chart data
+  dailyPayments?: DailyPayments[]; // New field for chart data
 }
 
 // Pagination Interface
