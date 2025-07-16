@@ -553,7 +553,7 @@ const Transactions: React.FC = () => {
 
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-6">
           <motion.div
             whileHover={{ scale: 1.02 }}
             className="bg-white rounded-xl shadow-sm p-3 md:p-6 border border-gray-100 hover:border-primary/20 transition-all duration-200"
@@ -565,7 +565,7 @@ const Transactions: React.FC = () => {
               <div>
                 <p className="text-xs md:text-sm text-gray-500">Total Revenue</p>
                 <p className="text-lg md:text-2xl font-semibold text-gray-900">
-                  {statistics.totalAmount.toLocaleString()}
+                  {statistics.totalRevenue.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -600,23 +600,6 @@ const Transactions: React.FC = () => {
                 <p className="text-xs md:text-sm text-gray-500">Total Payments</p>
                 <p className="text-lg md:text-2xl font-semibold text-gray-900">
                   {statistics.totalPayments.toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-          
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-xl shadow-sm p-3 md:p-6 border border-gray-100 hover:border-primary/20 transition-all duration-200"
-          >
-            <div className="flex items-center space-x-3 md:space-x-4">
-              <div className="p-2 md:p-3 bg-orange-50 rounded-xl flex-shrink-0">
-                <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-xs md:text-sm text-gray-500">Average</p>
-                <p className="text-lg md:text-2xl font-semibold text-gray-900">
-                  {statistics.averageAmount.toFixed(2)}
                 </p>
               </div>
             </div>

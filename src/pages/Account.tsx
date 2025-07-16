@@ -322,7 +322,7 @@ const GatewaySettingsModal: React.FC<{
 
                 {/* Gateway Settings */}
                 <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
                       <div className="flex items-center justify-center mb-2">
                         <Percent className="h-5 w-5 text-blue-600" />
@@ -331,13 +331,7 @@ const GatewaySettingsModal: React.FC<{
                       <div className="text-sm text-blue-700">Commission</div>
                     </div>
                     
-                    <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl">
-                      <div className="flex items-center justify-center mb-2">
-                        <Timer className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <div className="text-2xl font-bold text-orange-900">T+{gateway.settings.payoutDelay}</div>
-                      <div className="text-sm text-orange-700">Payout</div>
-                    </div>
+                   
 
                     <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
                       <div className="flex items-center justify-center mb-2">
@@ -637,7 +631,7 @@ const Account: React.FC = () => {
       )}
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {statsLoading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-200">
@@ -662,15 +656,12 @@ const Account: React.FC = () => {
                 <div className="p-3 bg-gradient-to-br from-green-400 to-green-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
                   <DollarSign className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center space-x-1 text-green-600">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm font-medium">+12.5%</span>
-                </div>
+                
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {statistics.totalAmount.toLocaleString()} USDT
+                  {statistics.totalRevenue.toLocaleString()} USDT
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Last {selectedPeriod}</p>
               </div>
@@ -684,12 +675,7 @@ const Account: React.FC = () => {
                 <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
                   <CheckCircle2 className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center space-x-1 text-blue-600">
-                  <Target className="h-4 w-4" />
-                  <span className="text-sm font-medium">
-                    {statistics.totalPayments > 0 ? ((statistics.successfulPayments / statistics.totalPayments) * 100).toFixed(1) : 0}%
-                  </span>
-                </div>
+                
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Success Rate</p>
@@ -708,10 +694,7 @@ const Account: React.FC = () => {
                 <div className="p-3 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
                   <Activity className="h-6 w-6 text-white" />
                 </div>
-                <div className="flex items-center space-x-1 text-purple-600">
-                  <ArrowUpRight className="h-4 w-4" />
-                  <span className="text-sm font-medium">+8.1%</span>
-                </div>
+                
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Total Transactions</p>
@@ -722,7 +705,7 @@ const Account: React.FC = () => {
               </div>
             </motion.div>
 
-            <motion.div
+            {/* <motion.div
               whileHover={{ scale: 1.02, y: -2 }}
               className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 hover:shadow-lg transition-all duration-300 group"
             >
@@ -738,11 +721,11 @@ const Account: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-500 mb-1">Average Order</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {statistics.averageAmount.toFixed(2)} USDT
+                  0 USDT
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Per transaction</p>
               </div>
-            </motion.div>
+            </motion.div> */}
           </>
         ) : null}
       </div>
@@ -904,8 +887,8 @@ const Account: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
           {availableGateways.map((gateway, index) => {
             const isActive = gateway.status === 'active';
-            
-            return (
+
+            if (isActive) return (
               <motion.div
                 key={gateway.id}
                 initial={{ opacity: 0, y: 20 }}
