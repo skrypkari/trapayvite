@@ -505,13 +505,14 @@ const AdminPayments: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [gatewayFilter, setGatewayFilter] = useState<string>('all');
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
-  const [merchantFilter, setMerchantFilter] = useState<string>('all');
+  const [shopIdFilter, setShopIdFilter] = useState<string>('all');
   const [selectedPayment, setSelectedPayment] = useState<AdminPayment | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
 
-  const { usePayments, useUpdatePaymentStatus } = useAdmin();
+  const { usePayments, useUpdatePaymentStatus, useMerchantSelection } = useAdmin();
   const updatePaymentStatusMutation = useUpdatePaymentStatus();
+  const { data: merchants, isLoading: merchantsLoading } = useMerchantSelection();
 
   // Build filters for API
   const filters: AdminPaymentFilters = useMemo(() => {
@@ -532,8 +533,8 @@ const AdminPayments: React.FC = () => {
       apiFilters.currency = currencyFilter;
     }
 
-    if (merchantFilter !== 'all') {
-      apiFilters.shopId = merchantFilter;
+    if (shopIdFilter !== 'all') {
+      apiFilters.shopId = shopIdFilter;
     }
 
     if (searchTerm.trim()) {
@@ -541,7 +542,6 @@ const AdminPayments: React.FC = () => {
     }
 
     return apiFilters;
-  }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter, merchantFilter, searchTerm]);
 
   const { data: paymentsData, isLoading, error } = usePayments(filters);
 
@@ -587,25 +587,20 @@ const AdminPayments: React.FC = () => {
     { value: 'USDC', label: 'USDC' },
   ];
 
-  // Extract unique merchants from payments data for dropdown
+  // ✅ UPDATED: Use merchant selection API instead of extracting from payments
   const merchantOptions = useMemo(() => {
-    const merchants = new Map();
-    merchants.set('all', { value: 'all', label: 'All Merchants' });
+    const options = [{ value: 'all', label: 'All Merchants' }];
     
-    if (paymentsData?.payments) {
-      paymentsData.payments.forEach(payment => {
-        if (payment.shopId && payment.shop && !merchants.has(payment.shopId)) {
-          merchants.set(payment.shopId, {
-            value: payment.shopId,
-            label: `${payment.shopName} (@${payment.shopUsername})`,
-            icon: <Building2 className="h-4 w-4 text-gray-500" />
-          });
-        }
+    if (merchants) {
+      merchants.forEach(merchant => {
+        options.push({
+          value: merchant.id,
+          label: merchant.username, // ✅ Show only username as requested
+          icon: <Building2 className="h-4 w-4 text-gray-500" />
+        });
       });
     }
     
-    return Array.from(merchants.values());
-  }, [paymentsData?.payments]);
 
   const handleUpdatePaymentStatus = async (id: string, data: UpdatePaymentStatusData) => {
     try {

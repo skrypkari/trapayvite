@@ -108,6 +108,18 @@ export interface AdminPaymentFilters {
   currency?: string;
 }
 
+// ✅ NEW: Merchant selection interface
+export interface MerchantSelection {
+  id: string;
+  username: string;
+  name: string;
+}
+
+export interface MerchantSelectionResponse {
+  success: boolean;
+  result: MerchantSelection[];
+}
+
 export interface AdminPaymentsResponse {
   success: boolean;
   payments: AdminPayment[];
@@ -302,6 +314,8 @@ export const adminKeys = {
   payoutMerchantsList: (filters?: AdminPayoutMerchantsFilters) => [...adminKeys.payoutMerchants(), 'list', filters] as const,
   payoutsList: (filters?: AdminPayoutFilters) => [...adminKeys.payouts(), 'list', filters] as const,
   payout: (id: string) => [...adminKeys.payouts(), 'detail', id] as const,
+  merchants: () => [...adminKeys.all, 'merchants'] as const,
+  merchantSelection: () => [...adminKeys.merchants(), 'selection'] as const,
   merchantStats: () => [...adminKeys.all, 'merchantStats'] as const,
   merchantStatsList: (filters?: MerchantStatisticsFilters) => [...adminKeys.merchantStats(), 'list', filters] as const,
 };
@@ -432,6 +446,21 @@ export function useUpdatePaymentStatus() {
       // Update specific payment cache
       queryClient.setQueryData(adminKeys.payment(variables.id), data);
     },
+  });
+}
+
+// ===== NEW: MERCHANT SELECTION HOOK =====
+
+// Hook to get merchant selection list for filters
+export function useAdminMerchantSelection() {
+  return useQuery({
+    queryKey: adminKeys.merchantSelection(),
+    queryFn: async () => {
+      const response = await api.get<MerchantSelectionResponse>('/admin/merchants/selection');
+      return response.result;
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes - merchants don't change often
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
@@ -602,6 +631,7 @@ export function useAdmin() {
     usePayments: useAdminPayments,
     usePayment: useAdminPayment,
     useUpdatePaymentStatus: useUpdatePaymentStatus,
+    useMerchantSelection: useAdminMerchantSelection,
     
     // Payouts
     usePayoutStats: useAdminPayoutStats,
