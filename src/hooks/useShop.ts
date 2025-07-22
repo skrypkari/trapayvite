@@ -327,8 +327,8 @@ export function useShopPayouts(filters: PayoutFilters = {}) {
       if (filters.limit) params.append('limit', filters.limit.toString());
       if (filters.status) params.append('status', filters.status);
       if (filters.network) params.append('network', filters.network);
-      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+      if (filters.periodFrom) params.append('periodFrom', filters.periodFrom);
+      if (filters.periodTo) params.append('periodTo', filters.periodTo);
       
       const queryString = params.toString();
       const response = await api.get<ApiResponse<{

@@ -643,6 +643,10 @@ const AdminPayouts: React.FC = () => {
   const [selectedPayout, setSelectedPayout] = useState<AdminPayout | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
+  const [periodFromDate, setPeriodFromDate] = useState<Date | null>(null);
+  const [periodToDate, setPeriodToDate] = useState<Date | null>(null);
+  const [isPeriodFromDatePickerOpen, setIsPeriodFromDatePickerOpen] = useState(false);
+  const [isPeriodToDatePickerOpen, setIsPeriodToDatePickerOpen] = useState(false);
 
   const { 
     usePayoutStats, 

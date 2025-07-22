@@ -217,7 +217,7 @@ const Payouts: React.FC = () => {
     }
 
     return apiFilters;
-  }, [currentPage, pageSize, statusFilter, networkFilter, startDate, endDate]);
+  }, [currentPage, pageSize, statusFilter, networkFilter, periodFromDate, periodToDate]);
 
   const { data: payoutsData, isLoading, error } = useShopPayouts(filters);
   const { data: stats, isLoading: statsLoading } = useShopPayoutStats();

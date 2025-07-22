@@ -779,6 +779,14 @@ const AdminPayments: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {payment.customerName || '-'}
+                      </div>
+                      {payment.customerEmail && (
+                        <div className="text-xs text-gray-500">{payment.customerEmail}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
                       {payment.status === 'PAID' && (
                         <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
                           <CheckCircle2 className="h-4 w-4" />

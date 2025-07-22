@@ -489,6 +489,8 @@ export function useAdminPayouts(filters?: AdminPayoutFilters) {
       if (filters?.search) params.append('search', filters.search);
       if (filters?.network) params.append('network', filters.network);
       if (filters?.status) params.append('status', filters.status);
+      if (filters?.periodFrom) params.append('periodFrom', filters.periodFrom);
+      if (filters?.periodTo) params.append('periodTo', filters.periodTo);
       
       const queryString = params.toString();
       const response = await api.get<AdminPayoutsResponse>(
