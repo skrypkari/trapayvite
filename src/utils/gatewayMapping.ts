@@ -14,6 +14,8 @@ export interface GatewayInfo {
 // Gateway ID mapping - users only see IDs, not real names
 // ✅ FIXED: Support both cases for server compatibility
 export const GATEWAY_ID_MAP: Record<string, string> = {
+  'Test Gateway': '0000',
+  'test gateway': '0000',  // ✅ Support lowercase from server
   'Plisio': '0001',
   'plisio': '0001',    // ✅ Support lowercase from server
   'Rapyd': '0010',
@@ -38,6 +40,7 @@ export const GATEWAY_ID_MAP: Record<string, string> = {
 
 // Reverse mapping for internal use
 export const ID_TO_GATEWAY_MAP: Record<string, string> = {
+  '0000': 'Test Gateway',
   '0001': 'Plisio',
   '0010': 'Rapyd',
   '0100': 'CoinToPay',
@@ -49,6 +52,16 @@ export const ID_TO_GATEWAY_MAP: Record<string, string> = {
 
 // Gateway information for UI display (using IDs)
 export const GATEWAY_INFO: Record<string, GatewayInfo> = {
+  '0000': {
+    id: '0000',
+    name: 'Test Gateway',
+    displayName: 'Gateway 0000 - Test Gateway (Cards)',
+    description: 'Test payment gateway for development - ID: 0000',
+    features: ['Test Cards'],
+    color: 'bg-gray-500',
+    fee: '0%',
+    payout: 'Instant'
+  },
   '0001': {
     id: '0001',
     name: 'Plisio',
