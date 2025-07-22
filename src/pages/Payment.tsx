@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '../utils/currency';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { api } from '../lib/api';
+import { getGatewayIdSafe } from '../utils/gatewayMapping';
 
 interface PaymentData {
   id: string;
@@ -49,12 +50,404 @@ interface PaymentData {
   white_url?: string; 
 }
 
+// ✅ NEW: Interface for test gateway payment details
+interface TestGatewayPaymentData {
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  merchantName: string;
+  description: string;
+  testInstructions: {
+    successCard: string;
+    failureCard: string;
+    expiryDate: string;
+    cvc: string;
+    holderName: string;
+  };
+}
+
+// ✅ NEW: Interface for card form data
+interface CardFormData {
+  cardNumber: string;
+  cardHolderName: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvc: string;
+}
+
 // ✅ NEW: Interface for customer info update
 interface CustomerInfoUpdate {
   customerCountry?: string;
   customerIp?: string;
   customerUa?: string;
 }
+
+// ✅ NEW: Test Gateway Payment Form Component
+const TestGatewayForm: React.FC<{
+  paymentData: PaymentData;
+  onSuccess: (redirectUrl?: string) => void;
+  onFailure: (reason: string, redirectUrl?: string) => void;
+}> = ({ paymentData, onSuccess, onFailure }) => {
+  const [testPaymentData, setTestPaymentData] = useState<TestGatewayPaymentData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<CardFormData>({
+    cardNumber: '',
+    cardHolderName: '',
+    expiryMonth: '',
+    expiryYear: '',
+    cvc: ''
+  });
+  const [formErrors, setFormErrors] = useState<Partial<CardFormData>>({});
+
+  // Fetch test gateway payment details
+  useEffect(() => {
+    const fetchTestPaymentData = async () => {
+      try {
+        const response = await api.get<{ success: boolean; result: TestGatewayPaymentData }>(`/test-gateway/payment/${paymentData.id}`);
+        if (response.success) {
+          setTestPaymentData(response.result);
+        } else {
+          throw new Error('Failed to load test payment data');
+        }
+      } catch (error: any) {
+        console.error('Failed to fetch test payment data:', error);
+        toast.error('Failed to load payment form');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTestPaymentData();
+  }, [paymentData.id]);
+
+  const validateForm = (): boolean => {
+    const errors: Partial<CardFormData> = {};
+
+    // Card number validation
+    const cardNumber = formData.cardNumber.replace(/\s/g, '');
+    if (!cardNumber) {
+      errors.cardNumber = 'Card number is required';
+    } else if (cardNumber.length < 13 || cardNumber.length > 19) {
+      errors.cardNumber = 'Invalid card number length';
+    } else if (!/^\d+$/.test(cardNumber)) {
+      errors.cardNumber = 'Card number must contain only digits';
+    }
+
+    // Cardholder name validation
+    if (!formData.cardHolderName.trim()) {
+      errors.cardHolderName = 'Cardholder name is required';
+    }
+
+    // Expiry month validation
+    const month = parseInt(formData.expiryMonth);
+    if (!formData.expiryMonth || month < 1 || month > 12) {
+      errors.expiryMonth = 'Valid month required (01-12)';
+    }
+
+    // Expiry year validation
+    const year = parseInt(formData.expiryYear);
+    const currentYear = new Date().getFullYear() % 100;
+    if (!formData.expiryYear || year < currentYear) {
+      errors.expiryYear = 'Valid future year required';
+    }
+
+    // CVC validation
+    if (!formData.cvc || formData.cvc.length < 3 || formData.cvc.length > 4) {
+      errors.cvc = 'Valid CVC required (3-4 digits)';
+    } else if (!/^\d+$/.test(formData.cvc)) {
+      errors.cvc = 'CVC must contain only digits';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const formatCardNumber = (value: string): string => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCardNumber(e.target.value);
+    setFormData(prev => ({ ...prev, cardNumber: formatted }));
+    if (formErrors.cardNumber) {
+      setFormErrors(prev => ({ ...prev, cardNumber: undefined }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        result: {
+          status: string;
+          transactionId?: string;
+          redirectUrl?: string;
+          failureReason?: string;
+        };
+      }>(`/test-gateway/process-card/${paymentData.id}`, {
+        cardNumber: formData.cardNumber.replace(/\s/g, ''),
+        cardHolderName: formData.cardHolderName,
+        expiryMonth: formData.expiryMonth.padStart(2, '0'),
+        expiryYear: formData.expiryYear,
+        cvc: formData.cvc
+      });
+
+      if (response.success && response.result.status === 'PAID') {
+        toast.success('Payment processed successfully!');
+        onSuccess(response.result.redirectUrl);
+      } else {
+        const reason = response.result?.failureReason || response.message || 'Payment failed';
+        toast.error(reason);
+        onFailure(reason, response.result?.redirectUrl);
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Payment processing failed';
+      toast.error(errorMessage);
+      onFailure(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-gray-600">Loading payment form...</p>
+      </div>
+    );
+  }
+
+  if (!testPaymentData) {
+    return (
+      <div className="text-center py-8">
+        <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-4" />
+        <p className="text-red-600">Failed to load payment form</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Test Payment</h2>
+        <p className="text-gray-600 text-sm">
+          Enter your card details to complete the payment
+        </p>
+      </div>
+
+      {/* Test Instructions */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-start space-x-3">
+          <div className="flex-shrink-0">
+            <CreditCard className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h4 className="text-sm font-medium text-blue-900">Test Instructions</h4>
+            <div className="mt-2 text-sm text-blue-700 space-y-1">
+              <p><strong>Success:</strong> Use card {testPaymentData.testInstructions.successCard}</p>
+              <p><strong>Failure:</strong> Use any other card number</p>
+              <p><strong>Expiry:</strong> {testPaymentData.testInstructions.expiryDate}</p>
+              <p><strong>CVC:</strong> {testPaymentData.testInstructions.cvc}</p>
+              <p><strong>Name:</strong> {testPaymentData.testInstructions.holderName}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Form */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Card Number */}
+        <div>
+          <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-2">
+            Card Number *
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <CreditCard className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              id="cardNumber"
+              value={formData.cardNumber}
+              onChange={handleCardNumberChange}
+              className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${
+                formErrors.cardNumber 
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                  : 'border-gray-300 focus:border-primary focus:ring-primary/20'
+              } focus:outline-none focus:ring-2`}
+              placeholder="1234 5678 9012 3456"
+              maxLength={19}
+              disabled={isSubmitting}
+            />
+          </div>
+          {formErrors.cardNumber && (
+            <p className="mt-1 text-sm text-red-600">{formErrors.cardNumber}</p>
+          )}
+        </div>
+
+        {/* Cardholder Name */}
+        <div>
+          <label htmlFor="cardHolderName" className="block text-sm font-medium text-gray-700 mb-2">
+            Cardholder Name *
+          </label>
+          <input
+            type="text"
+            id="cardHolderName"
+            value={formData.cardHolderName}
+            onChange={(e) => {
+              setFormData(prev => ({ ...prev, cardHolderName: e.target.value }));
+              if (formErrors.cardHolderName) {
+                setFormErrors(prev => ({ ...prev, cardHolderName: undefined }));
+              }
+            }}
+            className={`w-full px-4 py-3 rounded-xl border transition-colors ${
+              formErrors.cardHolderName 
+                ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                : 'border-gray-300 focus:border-primary focus:ring-primary/20'
+            } focus:outline-none focus:ring-2`}
+            placeholder="John Doe"
+            disabled={isSubmitting}
+          />
+          {formErrors.cardHolderName && (
+            <p className="mt-1 text-sm text-red-600">{formErrors.cardHolderName}</p>
+          )}
+        </div>
+
+        {/* Expiry and CVC */}
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="expiryMonth" className="block text-sm font-medium text-gray-700 mb-2">
+              Month *
+            </label>
+            <input
+              type="text"
+              id="expiryMonth"
+              value={formData.expiryMonth}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                setFormData(prev => ({ ...prev, expiryMonth: value }));
+                if (formErrors.expiryMonth) {
+                  setFormErrors(prev => ({ ...prev, expiryMonth: undefined }));
+                }
+              }}
+              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
+                formErrors.expiryMonth 
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                  : 'border-gray-300 focus:border-primary focus:ring-primary/20'
+              } focus:outline-none focus:ring-2`}
+              placeholder="MM"
+              maxLength={2}
+              disabled={isSubmitting}
+            />
+            {formErrors.expiryMonth && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.expiryMonth}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="expiryYear" className="block text-sm font-medium text-gray-700 mb-2">
+              Year *
+            </label>
+            <input
+              type="text"
+              id="expiryYear"
+              value={formData.expiryYear}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                setFormData(prev => ({ ...prev, expiryYear: value }));
+                if (formErrors.expiryYear) {
+                  setFormErrors(prev => ({ ...prev, expiryYear: undefined }));
+                }
+              }}
+              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
+                formErrors.expiryYear 
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                  : 'border-gray-300 focus:border-primary focus:ring-primary/20'
+              } focus:outline-none focus:ring-2`}
+              placeholder="YY"
+              maxLength={2}
+              disabled={isSubmitting}
+            />
+            {formErrors.expiryYear && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.expiryYear}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="cvc" className="block text-sm font-medium text-gray-700 mb-2">
+              CVC *
+            </label>
+            <input
+              type="text"
+              id="cvc"
+              value={formData.cvc}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                setFormData(prev => ({ ...prev, cvc: value }));
+                if (formErrors.cvc) {
+                  setFormErrors(prev => ({ ...prev, cvc: undefined }));
+                }
+              }}
+              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
+                formErrors.cvc 
+                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+                  : 'border-gray-300 focus:border-primary focus:ring-primary/20'
+              } focus:outline-none focus:ring-2`}
+              placeholder="123"
+              maxLength={4}
+              disabled={isSubmitting}
+            />
+            {formErrors.cvc && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.cvc}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-primary text-white py-4 px-6 rounded-xl font-medium hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Processing Payment...</span>
+            </>
+          ) : (
+            <>
+              <span>Pay {formatCurrency(testPaymentData.amount, testPaymentData.currency)}</span>
+              <ArrowRight className="h-5 w-5" />
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+};
 
 const Payment: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -65,6 +458,11 @@ const Payment: React.FC = () => {
   const [showCopied, setShowCopied] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [customerInfoSent, setCustomerInfoSent] = useState(false); // ✅ NEW: Track if customer info was sent
+  const [paymentResult, setPaymentResult] = useState<{
+    status: 'success' | 'failure';
+    message: string;
+    redirectUrl?: string;
+  } | null>(null);
 
   // ✅ NEW: Function to get user's IP address
   const getUserIP = async (): Promise<string | null> => {
@@ -264,6 +662,33 @@ const Payment: React.FC = () => {
     return () => clearInterval(interval);
   }, [id, paymentData]);
 
+  // ✅ NEW: Handle test gateway payment results
+  const handleTestPaymentSuccess = (redirectUrl?: string) => {
+    setPaymentResult({
+      status: 'success',
+      message: 'Payment processed successfully!',
+      redirectUrl
+    });
+    
+    // Update payment data status
+    if (paymentData) {
+      setPaymentData(prev => prev ? { ...prev, status: 'PAID' } : null);
+    }
+  };
+
+  const handleTestPaymentFailure = (reason: string, redirectUrl?: string) => {
+    setPaymentResult({
+      status: 'failure',
+      message: reason,
+      redirectUrl
+    });
+    
+    // Update payment data status
+    if (paymentData) {
+      setPaymentData(prev => prev ? { ...prev, status: 'FAILED' } : null);
+    }
+  };
+
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
     setShowCopied(type);
@@ -297,6 +722,9 @@ const Payment: React.FC = () => {
     TON: 'TON',
     TRX: 'TRON',
   };
+
+  // ✅ NEW: Check if this is a test gateway
+  const isTestGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '0000';
 
   if (isLoading) {
     return (
@@ -415,8 +843,17 @@ const Payment: React.FC = () => {
 
               {/* Main Content */}
               <div className="p-8">
+                {/* ✅ NEW: Test Gateway Form */}
+                {paymentData.status === 'PENDING' && isTestGateway && (
+                  <TestGatewayForm
+                    paymentData={paymentData}
+                    onSuccess={handleTestPaymentSuccess}
+                    onFailure={handleTestPaymentFailure}
+                  />
+                )}
+
                 {/* Pending State */}
-                {paymentData.status === 'PENDING' && (
+                {paymentData.status === 'PENDING' && !isTestGateway && (
                   <div className="text-center space-y-6">
                     {/* QR Code Section for Plisio */}
                     {paymentData.gateway === 'plisio' && paymentData.qr_code && (
@@ -502,7 +939,7 @@ const Payment: React.FC = () => {
                     )}
 
                     {/* External Payment Link for other gateways */}
-                    {paymentData.gateway !== '0001' && (
+                    {paymentData.gateway !== 'plisio' && (
                       <div className="space-y-6">
                         <div>
                           <h2 className="text-xl font-semibold text-gray-900 mb-2">Complete Payment</h2>
@@ -581,7 +1018,7 @@ const Payment: React.FC = () => {
                 )}
 
                 {/* Success State */}
-                {paymentData.status === 'PAID' && (
+                {(paymentData.status === 'PAID' || paymentResult?.status === 'success') && (
                   <div className="text-center space-y-6">
                     {/* Success Animation Background */}
                     <div className="relative">
@@ -598,12 +1035,14 @@ const Payment: React.FC = () => {
 
                     <div>
                       <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment initiation completed</h2>
-                      <p className="text-gray-600">Thank you for using TRAPAY Payment services</p>
+                      <p className="text-gray-600">
+                        {paymentResult?.message || 'Thank you for using TRAPAY Payment services'}
+                      </p>
                     </div>
 
-                    {paymentData.success_url ? (
+                    {(paymentResult?.redirectUrl || paymentData.success_url) ? (
                       <a
-                        href={paymentData.success_url}
+                        href={paymentResult?.redirectUrl || paymentData.success_url}
                         className="inline-flex items-center justify-center w-full bg-primary text-white py-4 px-6 rounded-xl font-medium hover:bg-primary-dark transition-colors"
                       >
                         Return to merchant
@@ -620,7 +1059,7 @@ const Payment: React.FC = () => {
                 )}
 
                 {/* Failed State */}
-                {paymentData.status === 'FAILED' && (
+                {(paymentData.status === 'FAILED' || paymentResult?.status === 'failure') && (
                   <div className="text-center space-y-6">
                     <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
                       <XCircle className="h-8 w-8 text-red-600" />
@@ -628,7 +1067,7 @@ const Payment: React.FC = () => {
                     <div>
                       <h2 className="text-xl font-semibold text-gray-900 mb-2">Payment Not Successful</h2>
                       <p className="text-gray-600 text-sm">
-                        Please try again or contact the payment recipient.
+                        {paymentResult?.message || 'Please try again or contact the payment recipient.'}
                       </p>
                     </div>
                     <div className="space-y-3">
@@ -638,9 +1077,9 @@ const Payment: React.FC = () => {
                       >
                         Try Again
                       </button>
-                      {paymentData.fail_url && (
+                      {(paymentResult?.redirectUrl || paymentData.fail_url) && (
                         <a
-                          href={paymentData.fail_url}
+                          href={paymentResult?.redirectUrl || paymentData.fail_url}
                           className="block w-full border border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-50 transition-colors"
                         >
                           Go Back
