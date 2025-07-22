@@ -550,6 +550,20 @@ const PayoutDetailsModal: React.FC<{
                     {format(new Date(payout.paidAt), 'PPpp')}
                   </div>
                 </div>
+                <CustomSelect
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  options={statusOptions}
+                  placeholder="All Status"
+                  className="w-full"
+                />
+                <CustomSelect
+                  value={networkFilter}
+                  onChange={setNetworkFilter}
+                  options={networkOptions}
+                  placeholder="All Networks"
+                  className="w-full"
+                />
               )}
             </div>
 
@@ -643,10 +657,6 @@ const AdminPayouts: React.FC = () => {
   const [selectedPayout, setSelectedPayout] = useState<AdminPayout | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
-  const [periodFromDate, setPeriodFromDate] = useState<Date | null>(null);
-  const [periodToDate, setPeriodToDate] = useState<Date | null>(null);
-  const [isPeriodFromDatePickerOpen, setIsPeriodFromDatePickerOpen] = useState(false);
-  const [isPeriodToDatePickerOpen, setIsPeriodToDatePickerOpen] = useState(false);
 
   const { 
     usePayoutStats, 
@@ -888,48 +898,66 @@ const AdminPayouts: React.FC = () => {
                   className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all duration-200"
                 />
               </div>
-            </div>
-            <div className="flex gap-4">
-              {activeTab === 'merchants' ? (
+            {/* Period filters for payouts tab */}
+            {activeTab === 'payouts' && (
+              <div className="flex gap-4">
                 <div className="relative">
-                  <input
-                    type="number"
-                    placeholder="Min amount"
-                    value={minAmount}
-                    onChange={(e) => setMinAmount(e.target.value)}
-                    className="w-[140px] px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                  />
+                  <button
+                    onClick={() => setIsPeriodFromDatePickerOpen(true)}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                  >
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className={periodFromDate ? 'text-gray-900' : 'text-gray-500'}>
+                      {periodFromDate ? format(periodFromDate, 'MMM d, yyyy') : 'Period from'}
+                    </span>
+                  </button>
+                  <AnimatePresence>
+                    {isPeriodFromDatePickerOpen && (
+                      <DatePicker
+                        value={periodFromDate}
+                        onChange={(date) => {
+                          setPeriodFromDate(date);
+                          setIsPeriodFromDatePickerOpen(false);
+                        }}
+                        onClose={() => setIsPeriodFromDatePickerOpen(false)}
+                      />
+                    )}
+                  </AnimatePresence>
                 </div>
-              ) : (
-                <>
-                  <CustomSelect
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    options={statusOptions}
-                    placeholder="All Status"
-                    className="w-[180px]"
-                  />
-                  <CustomSelect
-                    value={networkFilter}
-                    onChange={setNetworkFilter}
-                    options={networkOptions}
-                    placeholder="All Networks"
-                    className="w-[180px]"
-                  />
-                </>
-              )}
-            </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setIsPeriodToDatePickerOpen(true)}
+                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                  >
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className={periodToDate ? 'text-gray-900' : 'text-gray-500'}>
+                      {periodToDate ? format(periodToDate, 'MMM d, yyyy') : 'Period to'}
+                    </span>
+                  </button>
+                  <AnimatePresence>
+                    {isPeriodToDatePickerOpen && (
+                      <DatePicker
+                        value={periodToDate}
+                        onChange={(date) => {
+                          setPeriodToDate(date);
+                          setIsPeriodToDatePickerOpen(false);
+                        }}
+                        onClose={() => setIsPeriodToDatePickerOpen(false)}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Content */}
         {activeTab === 'merchants' ? (
           // Merchants Table
           merchantsLoading ? (
             <div className="flex items-center justify-center py-12">
               <LoadingSpinner size="lg" />
             </div>
-          ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[800px]">
                 <thead>
