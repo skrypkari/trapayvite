@@ -207,6 +207,8 @@ export interface AdminPayoutFilters {
   search?: string;
   network?: string;
   status?: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  periodFrom?: string;
+  periodTo?: string;
 }
 
 export interface AdminPayoutMerchantsResponse {

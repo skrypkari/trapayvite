@@ -639,6 +639,10 @@ const AdminPayouts: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [networkFilter, setNetworkFilter] = useState<string>('all');
   const [minAmount, setMinAmount] = useState<string>('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
+  const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
   const [selectedMerchant, setSelectedMerchant] = useState<AdminPayoutMerchant | null>(null);
   const [selectedPayout, setSelectedPayout] = useState<AdminPayout | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -671,7 +675,9 @@ const AdminPayouts: React.FC = () => {
     search: searchTerm || undefined,
     network: networkFilter !== 'all' ? networkFilter : undefined,
     status: statusFilter !== 'all' ? statusFilter as any : undefined,
-  }), [currentPage, pageSize, searchTerm, networkFilter, statusFilter]);
+    periodFrom: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
+    periodTo: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
+  }), [currentPage, pageSize, searchTerm, networkFilter, statusFilter, startDate, endDate]);
 
   const { data: merchantsData, isLoading: merchantsLoading } = usePayoutMerchants(merchantFilters);
   const { data: payoutsData, isLoading: payoutsLoading } = usePayouts(payoutFilters);
@@ -898,6 +904,52 @@ const AdminPayouts: React.FC = () => {
                 </div>
               ) : (
                 <>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsStartDatePickerOpen(true)}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                    >
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
+                        {startDate ? format(startDate, 'MMM d, yyyy') : 'Start date'}
+                      </span>
+                    </button>
+                    <AnimatePresence>
+                      {isStartDatePickerOpen && (
+                        <DatePicker
+                          value={startDate}
+                          onChange={(date) => {
+                            setStartDate(date);
+                            setIsStartDatePickerOpen(false);
+                          }}
+                          onClose={() => setIsStartDatePickerOpen(false)}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsEndDatePickerOpen(true)}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                    >
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
+                        {endDate ? format(endDate, 'MMM d, yyyy') : 'End date'}
+                      </span>
+                    </button>
+                    <AnimatePresence>
+                      {isEndDatePickerOpen && (
+                        <DatePicker
+                          value={endDate}
+                          onChange={(date) => {
+                            setEndDate(date);
+                            setIsEndDatePickerOpen(false);
+                          }}
+                          onClose={() => setIsEndDatePickerOpen(false)}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </div>
                   <CustomSelect
                     value={statusFilter}
                     onChange={setStatusFilter}
