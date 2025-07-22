@@ -159,7 +159,7 @@ const Payment: React.FC = () => {
       console.log('🔍 Sending customer info:', customerInfo);
       
       // Send to server
-      await api.put(`/admin/payments/${paymentId}/customer`, customerInfo);
+      await api.put(`/payments/${paymentId}/customer`, customerInfo);
       
       console.log('✅ Customer info sent successfully');
       setCustomerInfoSent(true);

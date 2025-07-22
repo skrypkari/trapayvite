@@ -140,7 +140,7 @@ const PaymentDetailsModal: React.FC<{
 
         <div className="p-6 space-y-4">
           {/* ✅ NEW: Show failure message if payment failed */}
-          {payment.status === 'FAILED' && payment.failure_message && (
+          {payment.status.toUpperCase() === 'FAILED' && payment.failure_message && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
@@ -237,31 +237,31 @@ const PaymentDetailsModal: React.FC<{
             <div className="p-4 bg-gray-50 rounded-xl">
               <div className="text-sm font-medium text-gray-500 mb-1">Status</div>
               <div className="mt-1">
-                {payment.status === 'PAID' && (
+                {payment.status.toUpperCase() === 'PAID' && (
                   <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
                     <CheckCircle2 className="h-4 w-4" />
                     <span className="text-sm font-medium">Paid</span>
                   </div>
                 )}
-                {payment.status === 'PENDING' && (
+                {payment.status.toUpperCase() === 'PENDING' && (
                   <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg w-fit">
                     <Clock className="h-4 w-4" />
                     <span className="text-sm font-medium">Pending</span>
                   </div>
                 )}
-                {payment.status === 'PROCESSING' && (
+                {payment.status.toUpperCase() === 'PROCESSING' && (
                   <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg w-fit">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="text-sm font-medium">Processing</span>
                   </div>
                 )}
-                {payment.status === 'FAILED' && (
+                {payment.status.toUpperCase() === 'FAILED' && (
                   <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg w-fit">
                     <AlertCircle className="h-4 w-4" />
                     <span className="text-sm font-medium">Failed</span>
                   </div>
                 )}
-                {payment.status === 'EXPIRED' && (
+                {payment.status.toUpperCase() === 'EXPIRED' && (
                   <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg w-fit">
                     <XCircle className="h-4 w-4" />
                     <span className="text-sm font-medium">Expired</span>
@@ -273,30 +273,30 @@ const PaymentDetailsModal: React.FC<{
             <div className="p-4 bg-gray-50 rounded-xl">
               <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
               <div className="text-sm text-gray-900">
-                {format(new Date(payment.createdAt), 'PPpp')}
+                {format(new Date(payment.created_at), 'PPpp')}
               </div>
             </div>
 
-            {payment.updatedAt && (
+            {payment.updated_at && (
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Updated At</div>
                 <div className="text-sm text-gray-900">
-                  {format(new Date(payment.updatedAt), 'PPpp')}
+                  {format(new Date(payment.updated_at), 'PPpp')}
                 </div>
               </div>
             )}
 
             {/* Product and Order Information */}
-            {renderField('Product Name', payment.productName)}
+            {renderField('Product Name', payment.product_name)}
 
             {/* Customer Information */}
-            {renderField('Customer Name', payment.customerName)}
-            {renderField('Customer Email', payment.customerEmail, true, 'customer-email')}
+            {renderField('Customer Name', payment.customer_name)}
+            {renderField('Customer Email', payment.customer_email, true, 'customer-email')}
             
             {/* ✅ NEW: Customer location and device info */}
-            {renderField('Customer Country', payment.customerCountry)}
-            {renderField('Customer IP', payment.customerIp, true, 'customer-ip')}
-            {renderField('Customer User Agent', payment.customerUa, true, 'customer-ua')}
+            {renderField('Customer Country', payment.customer_country)}
+            {renderField('Customer IP', payment.customer_ip, true, 'customer-ip')}
+            {renderField('Customer User Agent', payment.customer_ua, true, 'customer-ua')}
           </div>
         </div>
       </motion.div>
@@ -385,7 +385,7 @@ const Transactions: React.FC = () => {
     const columnHelper = createColumnHelper<ShopPayment>();
     
     return [
-      columnHelper.accessor('createdAt', {
+      columnHelper.accessor('created_at', {
         header: ({ column }) => (
           <button
             onClick={() => column.toggleSorting()}
@@ -457,32 +457,32 @@ const Transactions: React.FC = () => {
           const status = info.getValue();
           return (
             <div className="flex items-center space-x-2">
-              {status === 'PAID' && (
+              {status.toUpperCase() === 'PAID' && (
                 <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg">
                   <CheckCircle2 className="h-4 w-4 hidden sm:inline" />
                   <span className="text-sm font-medium">Paid</span>
                 </div>
               )}
-              {status === 'PENDING' && (
+              {status.toUpperCase() === 'PENDING' && (
                 <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg">
                   <Clock className="h-4 w-4 hidden sm:inline" />
                   <span className="text-sm font-medium">Pending</span>
                 </div>
               )}
               {/* ✅ NEW: PROCESSING status */}
-              {status === 'PROCESSING' && (
+              {status.toUpperCase() === 'PROCESSING' && (
                 <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
                   <Loader2 className="h-4 w-4 hidden sm:inline animate-spin" />
                   <span className="text-sm font-medium">Processing</span>
                 </div>
               )}
-              {status === 'FAILED' && (
+              {status.toUpperCase() === 'FAILED' && (
                 <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg">
                   <AlertCircle className="h-4 w-4 hidden sm:inline" />
                   <span className="text-sm font-medium">Failed</span>
                 </div>
               )}
-              {status === 'EXPIRED' && (
+              {status.toUpperCase() === 'EXPIRED' && (
                 <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">
                   <XCircle className="h-4 w-4 hidden sm:inline" />
                   <span className="text-sm font-medium">Expired</span>

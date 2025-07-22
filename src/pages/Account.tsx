@@ -104,10 +104,6 @@ const PaymentDetailsModal: React.FC<{
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Product Name</div>
-                <div className="text-sm text-gray-900">{payment.productName}</div>
-              </div>
               
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Gateway</div>
@@ -119,33 +115,33 @@ const PaymentDetailsModal: React.FC<{
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Customer</div>
                 <div className="text-sm text-gray-900">
-                  {payment.customerName && <div>{payment.customerName}</div>}
-                  {payment.customerEmail && <div className="text-gray-600">{payment.customerEmail}</div>}
+                  {payment.customer_name && <div>{payment.customer_name}</div>}
+                  {payment.customer_email && <div className="text-gray-600">{payment.customer_email}</div>}
                 </div>
               </div>
 
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Status</div>
                 <div className="mt-1">
-                  {payment.status === 'PAID' && (
+                  {payment.status.toUpperCase() === 'PAID' && (
                     <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
                       <CheckCircle2 className="h-4 w-4" />
                       <span className="text-sm font-medium">Paid</span>
                     </div>
                   )}
-                  {payment.status === 'PENDING' && (
+                  {payment.status.toUpperCase() === 'PENDING' && (
                     <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg w-fit">
                       <Clock className="h-4 w-4" />
                       <span className="text-sm font-medium">Pending</span>
                     </div>
                   )}
-                  {payment.status === 'FAILED' && (
+                  {payment.status.toUpperCase() === 'FAILED' && (
                     <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg w-fit">
                       <AlertTriangle className="h-4 w-4" />
                       <span className="text-sm font-medium">Failed</span>
                     </div>
                   )}
-                  {payment.status === 'EXPIRED' && (
+                  {payment.status.toUpperCase() === 'EXPIRED' && (
                     <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg w-fit">
                       <XCircle className="h-4 w-4" />
                       <span className="text-sm font-medium">Expired</span>
@@ -169,7 +165,7 @@ const PaymentDetailsModal: React.FC<{
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
                 <div className="text-sm text-gray-900">
-                  {format(new Date(payment.createdAt), 'PPpp')}
+                  {format(new Date(payment.created_at), 'PPpp')}
                 </div>
               </div>
 
@@ -184,7 +180,7 @@ const PaymentDetailsModal: React.FC<{
             </div>
           </div>
 
-          {payment.webhookLogs && payment.webhookLogs.length > 0 && (
+          {payment.webhook_logs && payment.webhook_logs.length > 0 && (
             <div className="border-t border-gray-200 pt-6">
               <h4 className="text-sm font-medium text-gray-900 mb-4">Webhook Logs</h4>
               <div className="space-y-3">
@@ -197,7 +193,7 @@ const PaymentDetailsModal: React.FC<{
                       <div>
                         <div className="text-sm font-medium text-gray-900">{log.event}</div>
                         <div className="text-xs text-gray-500">
-                          {format(new Date(log.createdAt), 'MMM d, HH:mm')}
+                          {format(new Date(log.created_at), 'MMM d, HH:mm')}
                         </div>
                       </div>
                     </div>
@@ -817,11 +813,8 @@ const Account: React.FC = () => {
                       onClick={() => setSelectedPayment(payment)}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-900 truncate group-hover:text-primary transition-colors">
-                          {payment.productName}
-                        </div>
                         <div className="text-xs text-gray-500 flex items-center space-x-2">
-                          <span>{format(new Date(payment.createdAt), 'MMM d, HH:mm')}</span>
+                          <span>{format(new Date(payment.created_at), 'MMM d, HH:mm')}</span>
                           <span>•</span>
                           <span className="text-primary">
                             {gatewayInfo ? gatewayInfo.displayName : `Gateway ${gatewayId || payment.gateway}`}
@@ -831,20 +824,20 @@ const Account: React.FC = () => {
                       <div className="flex items-center space-x-3">
                         <div className="text-right">
                           <div className="text-sm font-semibold text-gray-900">
-                            ${payment.amount.toFixed(2)}
+                            {payment.amount.toFixed(2)}
                           </div>
                           <div className="text-xs text-gray-500">{payment.currency}</div>
                         </div>
-                        {payment.status === 'PAID' && (
+                        {payment.status.toUpperCase() === 'PAID' && (
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                         )}
-                        {payment.status === 'PENDING' && (
+                        {payment.status.toUpperCase() === 'PENDING' && (
                           <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
                         )}
-                        {payment.status === 'FAILED' && (
+                        {payment.status.toUpperCase() === 'FAILED' && (
                           <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                         )}
-                        {payment.status === 'EXPIRED' && (
+                        {payment.status.toUpperCase() === 'EXPIRED' && (
                           <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
                         )}
                       </div>

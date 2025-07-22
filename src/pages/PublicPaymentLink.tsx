@@ -224,20 +224,6 @@ const PublicPaymentLink: React.FC = () => {
                     <div className="text-sm opacity-75 mt-1">via {linkData.sourceCurrency}</div>
                   )}
                 </div>
-                
-                {/* ✅ UPDATED: Show link type and usage information */}
-                <div className="flex items-center justify-center space-x-4 text-sm opacity-90">
-                  <div className="flex items-center space-x-1">
-                    <span>{linkData.type === 'SINGLE' ? 'Single Use' : 'Multi Use'}</span>
-                  </div>
-                  <span>•</span>
-                  <div className="flex items-center space-x-1">
-                    <span>{linkData.currentPayments} payments</span>
-                    {linkData.type === 'SINGLE' && (
-                      <span>({linkData.remainingPayments > 0 ? 'available' : 'used'})</span>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Customer Information Form */}
