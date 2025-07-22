@@ -542,6 +542,7 @@ const AdminPayments: React.FC = () => {
     }
 
     return apiFilters;
+  }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter, shopIdFilter, searchTerm]);
 
   const { data: paymentsData, isLoading, error } = usePayments(filters);
 
@@ -601,6 +602,8 @@ const AdminPayments: React.FC = () => {
       });
     }
     
+    return options;
+  }, [merchants]);
 
   const handleUpdatePaymentStatus = async (id: string, data: UpdatePaymentStatusData) => {
     try {
@@ -660,7 +663,7 @@ const AdminPayments: React.FC = () => {
               </div>
 
               {/* Filter dropdowns */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <CustomSelect
                   value={statusFilter}
                   onChange={setStatusFilter}
@@ -688,7 +691,6 @@ const AdminPayments: React.FC = () => {
                   options={merchantOptions}
                   placeholder="All Merchants"
                   className="w-full"
-                  disabled={merchantsLoading}
                 />
               </div>
             </div>
