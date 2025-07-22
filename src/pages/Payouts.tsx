@@ -209,15 +209,15 @@ const Payouts: React.FC = () => {
     }
 
     if (startDate) {
-      apiFilters.dateFrom = format(startDate, 'yyyy-MM-dd');
+      apiFilters.periodFrom = format(startDate, 'yyyy-MM-dd');
     }
 
     if (endDate) {
-      apiFilters.dateTo = format(endDate, 'yyyy-MM-dd');
+      apiFilters.periodTo = format(endDate, 'yyyy-MM-dd');
     }
 
     return apiFilters;
-  }, [currentPage, pageSize, statusFilter, networkFilter, periodFromDate, periodToDate]);
+  }, [currentPage, pageSize, statusFilter, networkFilter, startDate, endDate]);
 
   const { data: payoutsData, isLoading, error } = useShopPayouts(filters);
   const { data: stats, isLoading: statsLoading } = useShopPayoutStats();
