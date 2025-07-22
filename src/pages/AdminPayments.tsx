@@ -588,25 +588,22 @@ const AdminPayments: React.FC = () => {
     { value: 'USDC', label: 'USDC' },
   ];
 
-  // Extract unique merchants from payments data for dropdown
+  // ✅ UPDATED: Use merchant selection API instead of extracting from payments
   const merchantOptions = useMemo(() => {
-    const merchants = new Map();
-    merchants.set('all', { value: 'all', label: 'All Merchants' });
+    const options = [{ value: 'all', label: 'All Merchants' }];
     
-    if (paymentsData?.payments) {
-      paymentsData.payments.forEach(payment => {
-        if (payment.shopId && payment.shop && !merchants.has(payment.shopId)) {
-          merchants.set(payment.shopId, {
-            value: payment.shopId,
-            label: `${payment.shopName} (@${payment.shopUsername})`,
-            icon: <Building2 className="h-4 w-4 text-gray-500" />
-          });
-        }
+    if (merchants) {
+      merchants.forEach(merchant => {
+        options.push({
+          value: merchant.id,
+          label: merchant.username, // ✅ Show only username as requested
+          icon: <Building2 className="h-4 w-4 text-gray-500" />
+        });
       });
     }
     
-    return Array.from(merchants.values());
-  }, [paymentsData?.payments]);
+    return options;
+  }, [merchants]);
 
   const handleUpdatePaymentStatus = async (id: string, data: UpdatePaymentStatusData) => {
     try {
