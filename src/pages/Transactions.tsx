@@ -451,6 +451,17 @@ const Transactions: React.FC = () => {
           </div>
         ),
       }),
+      columnHelper.accessor('customerName', {
+        header: 'Customer Name',
+        cell: (info) => {
+          const name = info.getValue();
+          return (
+            <div className="text-sm text-gray-900">
+              {name || '-'}
+            </div>
+          );
+        },
+      }),
       columnHelper.accessor('status', {
         header: 'Status',
         cell: (info) => {
