@@ -35,6 +35,8 @@ export interface User {
 export interface GatewaySettings {
   [gatewayId: string]: {
     commission: number;
+    minAmount: number;
+    maxAmount: number;
   };
 }
 
@@ -250,6 +252,24 @@ export const validateUserData = (data: EditUserFormData): ValidationError[] => {
           message: `Commission for Gateway ${gatewayId} must be between 0 and 100` 
         });
       }
+      if (settings.minAmount < 0) {
+        errors.push({ 
+          field: `gatewaySettings.${gatewayId}.minAmount`, 
+          message: `Min amount for Gateway ${gatewayId} must be 0 or greater` 
+        });
+      }
+      if (settings.maxAmount < 0) {
+        errors.push({ 
+          field: `gatewaySettings.${gatewayId}.maxAmount`, 
+          message: `Max amount for Gateway ${gatewayId} must be 0 or greater` 
+        });
+      }
+      if (settings.minAmount > settings.maxAmount && settings.maxAmount > 0) {
+        errors.push({ 
+          field: `gatewaySettings.${gatewayId}.maxAmount`, 
+          message: `Max amount for Gateway ${gatewayId} must be greater than min amount` 
+        });
+      }
     });
   }
 
@@ -297,7 +317,11 @@ export function useCreateUser() {
       Object.entries(user.gatewaySettings).forEach(([gatewayId, settings]) => {
         const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
         if (gatewayName) {
-          gatewaySettingsForApi[gatewayName] = { commission: settings.commission };
+          gatewaySettingsForApi[gatewayName] = { 
+            commission: settings.commission,
+            minAmount: settings.minAmount,
+            maxAmount: settings.maxAmount
+          };
         }
       });
       
@@ -436,7 +460,15 @@ export function useUpdateUser() {
         Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
           const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
           if (gatewayName) {
-            gatewaySettingsForApi[gatewayName] = { commission: settings.commission };
+            gatewaySettingsForApi[gatewayName] = { 
+              commission: settings.commission,
+              minAmount: settings.minAmount,
+              maxAmount: settings.maxAmount
+            };
+              commission: settings.commission,
+              minAmount: settings.minAmount || 0,
+              maxAmount: settings.maxAmount || 0
+            };
           }
         });
       }
