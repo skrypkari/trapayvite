@@ -168,7 +168,7 @@ const transformUser = (serverUser: any): User => {
       Object.entries(serverUser.gatewaySettings).forEach(([gatewayName, settings]) => {
         const gatewayId = convertGatewayNamesToIds([gatewayName])[0];
         if (gatewayId) {
-          gatewaySettingsWithIds[gatewayId] = { commission: settings.commission };
+          gatewaySettingsWithIds[gatewayId] = { commission: (settings as any).commission };
         }
       });
       return gatewaySettingsWithIds;
@@ -461,10 +461,6 @@ export function useUpdateUser() {
           const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
           if (gatewayName) {
             gatewaySettingsForApi[gatewayName] = { 
-              commission: settings.commission,
-              minAmount: settings.minAmount,
-              maxAmount: settings.maxAmount
-            };
               commission: settings.commission,
               minAmount: settings.minAmount || 0,
               maxAmount: settings.maxAmount || 0
