@@ -358,6 +358,7 @@ const Transactions: React.FC = () => {
     { value: '1001', label: 'Gateway 1001' },
     { value: '1010', label: 'Gateway 1010' },
     { value: '1100', label: 'Gateway 1100' },
+    { value: '1111', label: 'Gateway 1111' },
   ];
 
   // ✅ NEW: Currency options

@@ -566,6 +566,7 @@ const AdminPayments: React.FC = () => {
     { value: '1001', label: 'KLYME_EU' },
     { value: '1010', label: 'KLYME_GB' },
     { value: '1100', label: 'KLYME_DE' },
+    { value: '1111', label: 'MasterCard' },
   ];
 
   const currencyOptions = [
