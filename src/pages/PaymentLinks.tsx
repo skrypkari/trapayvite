@@ -759,6 +759,7 @@ const PaymentLinks: React.FC = () => {
         label: gatewayInfo ? gatewayInfo.displayName : `Gateway ${gatewayId}`
       };
     }) || [])
+    { value: '1111', label: 'MasterCard' },
   ];
 
   const handleCopyLink = (linkUrl: string, id: string) => {
