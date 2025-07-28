@@ -4,20 +4,17 @@ import {
   Copy, 
   Check, 
   ExternalLink, 
-  Clock, 
   AlertTriangle, 
   CheckCircle2,
   XCircle,
-  RefreshCw,
-  ArrowLeft,
   Wallet,
-  QrCode,
   Timer,
   CreditCard,
   Shield,
-  Loader2
+  Loader2,
+  ArrowRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatCurrency } from '../utils/currency';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -723,8 +720,8 @@ const Payment: React.FC = () => {
     TRX: 'TRON',
   };
 
-  // ✅ NEW: Check if this is a test gateway
-  const isTestGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '0000';
+
+  const isTestGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '0000' && getGatewayIdSafe(paymentData.gateway) === '1111';
 
   if (isLoading) {
     return (
@@ -776,7 +773,7 @@ const Payment: React.FC = () => {
       </div>
     );
   }
-  if (paymentData?.white_url) {
+  if (paymentData?.white_url && !isTestGateway) {
     return (
       <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
         <iframe
@@ -790,7 +787,8 @@ const Payment: React.FC = () => {
   }
   if (
     paymentData?.external_payment_url &&
-    paymentData.external_payment_url.includes('tesoft')
+    paymentData.external_payment_url.includes('tesoft') &&
+    !isTestGateway
   ) {
     return (
       <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
