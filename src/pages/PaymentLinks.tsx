@@ -189,7 +189,13 @@ const GATEWAY_CURRENCIES = {
     { value: 'GBP', label: 'GBP - British Pound' }
   ],
   '1100': [ // KLYME DE - только EUR
-    { value: 'EUR', label: 'EUR - Euro' }
+    { value: 'EUR', label: 'EUR - Euro' },
+    { value: 'USD', label: 'USD - US Dollar' },
+    { value: 'AUD', label: 'AUD - Australian Dollar' },
+    { value: 'CAD', label: 'CAD - Canadian Dollar' },
+    { value: 'GBP', label: 'GBP - British Pound' },
+    { value: 'NOK', label: 'NOK - Norwegian Krone' },
+    { value: 'JPY', label: 'JPY - Japanese Yen' }
   ]
 };
 
