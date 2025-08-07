@@ -426,6 +426,7 @@ const Transactions: React.FC = () => {
 
   const gatewayOptions = [
     { value: 'all', label: 'All Gateways' },
+<<<<<<< HEAD
     { value: '0001', label: 'Plisio' },
     { value: '0010', label: 'Rapyd' },
     { value: '0100', label: 'CoinToPay' },
@@ -434,6 +435,16 @@ const Transactions: React.FC = () => {
     { value: '1010', label: 'KLYME_GB' },
     { value: '1100', label: 'KLYME_DE' },
     { value: '1111', label: 'MasterCard' },
+=======
+    { value: '0001', label: 'Gateway 0001' },
+    { value: '0010', label: 'Gateway 0010' },
+    { value: '0100', label: 'Gateway 0100' },
+    { value: '1000', label: 'Gateway 1000' },
+    { value: '1001', label: 'Gateway 1001' },
+    { value: '1010', label: 'Gateway 1010' },
+    { value: '1100', label: 'Gateway 1100' },
+    { value: '1111', label: 'Gateway 1111' },
+>>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   ];
 
   const currencyOptions = [
@@ -456,6 +467,160 @@ const Transactions: React.FC = () => {
     { value: 'USDC', label: 'USDC' },
   ];
 
+<<<<<<< HEAD
+=======
+  const columns = useMemo(() => {
+    const columnHelper = createColumnHelper<ShopPayment>();
+    
+    return [
+      columnHelper.accessor('created_at', {
+        header: ({ column }) => (
+          <button
+            onClick={() => column.toggleSorting()}
+            className="flex items-center space-x-2 group"
+          >
+            <span className="hidden sm:inline">Date</span>
+            <span className="sm:hidden">Date</span>
+            <ArrowUpDown className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+          </button>
+        ),
+        cell: (info) => (
+          <div className="whitespace-nowrap">
+            <span className="hidden sm:inline">{format(new Date(info.getValue()), 'MMM d, yyyy')}</span>
+            <span className="sm:hidden">{format(new Date(info.getValue()), 'MM/dd')}</span>
+          </div>
+        ),
+      }),
+      columnHelper.accessor('id', {
+        header: 'Payment ID',
+        cell: (info) => (
+          <span className="font-mono text-gray-600 text-sm">{info.getValue().slice(0, 8)}...</span>
+        ),
+      }),
+      columnHelper.accessor('gateway', {
+        header: 'Gateway',
+        cell: (info) => {
+          // ✅ FIXED: Use safe gateway display function
+          const gatewayName = info.getValue();
+          const gatewayDisplayName = getGatewayDisplayName(gatewayName);
+          
+          return (
+            <div className="text-sm font-medium text-gray-900">
+              {gatewayDisplayName}
+            </div>
+          );
+        },
+      }),
+      // ✅ UPDATED: Separate amount and currency columns
+      columnHelper.accessor('amount', {
+        header: ({ column }) => (
+          <button
+            onClick={() => column.toggleSorting()}
+            className="flex items-center space-x-2 group"
+          >
+            <span>Amount</span>
+            <ArrowUpDown className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+          </button>
+        ),
+        cell: (info) => {
+          const amount = info.getValue();
+          return (
+            <div className="font-medium whitespace-nowrap text-gray-900">
+              {amount.toFixed(2)}
+            </div>
+          );
+        },
+      }),
+      columnHelper.accessor('currency', {
+        header: 'Currency',
+        cell: (info) => (
+          <div className="text-sm text-gray-600">
+            {info.getValue()}
+          </div>
+        ),
+      }),
+      columnHelper.accessor('customerName', {
+        header: 'Customer Name',
+        cell: (info) => {
+          const name = info.getValue();
+          return (
+            <div className="text-sm text-gray-900">
+              {name || '-'}
+            </div>
+          );
+        },
+      }),
+      columnHelper.accessor('status', {
+        header: 'Status',
+        cell: (info) => {
+          const status = info.getValue();
+          return (
+            <div className="flex items-center space-x-2">
+              {status.toUpperCase() === 'PAID' && (
+                <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg">
+                  <CheckCircle2 className="h-4 w-4 hidden sm:inline" />
+                  <span className="text-sm font-medium">Paid</span>
+                </div>
+              )}
+              {status.toUpperCase() === 'PENDING' && (
+                <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg">
+                  <Clock className="h-4 w-4 hidden sm:inline" />
+                  <span className="text-sm font-medium">Pending</span>
+                </div>
+              )}
+              {/* ✅ NEW: PROCESSING status */}
+              {status.toUpperCase() === 'PROCESSING' && (
+                <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
+                  <Loader2 className="h-4 w-4 hidden sm:inline animate-spin" />
+                  <span className="text-sm font-medium">Processing</span>
+                </div>
+              )}
+              {status.toUpperCase() === 'FAILED' && (
+                <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg">
+                  <AlertCircle className="h-4 w-4 hidden sm:inline" />
+                  <span className="text-sm font-medium">Failed</span>
+                </div>
+              )}
+              {status.toUpperCase() === 'EXPIRED' && (
+                <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">
+                  <XCircle className="h-4 w-4 hidden sm:inline" />
+                  <span className="text-sm font-medium">Expired</span>
+                </div>
+              )}
+            </div>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: '',
+        cell: (info) => (
+          <div className="flex items-center justify-end space-x-2">
+            <button
+              onClick={() => setSelectedPayment(info.row.original)}
+              className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-all duration-200"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+          </div>
+        ),
+      }),
+    ];
+  }, []);
+
+  const table = useReactTable({
+    data: paymentsData?.payments || [],
+    columns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+>>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   if (error) {
     return (
       <div className="p-6 text-center">

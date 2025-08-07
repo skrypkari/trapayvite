@@ -937,7 +937,11 @@ const AdminPayouts: React.FC = () => {
                     >
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
+<<<<<<< HEAD
                         {startDate ? format(startDate, 'dd.MM.yy') : 'Start date'}
+=======
+                        {startDate ? format(startDate, 'MMM d, yyyy') : 'Start date'}
+>>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                       </span>
                     </button>
                     <AnimatePresence>
@@ -960,7 +964,11 @@ const AdminPayouts: React.FC = () => {
                     >
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
+<<<<<<< HEAD
                         {endDate ? format(endDate, 'dd.MM.yy') : 'End date'}
+=======
+                        {endDate ? format(endDate, 'MMM d, yyyy') : 'End date'}
+>>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                       </span>
                     </button>
                     <AnimatePresence>

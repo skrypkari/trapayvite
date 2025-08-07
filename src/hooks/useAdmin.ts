@@ -124,6 +124,18 @@ export interface MerchantSelectionResponse {
   result: MerchantSelection[];
 }
 
+// ✅ NEW: Merchant selection interface
+export interface MerchantSelection {
+  id: string;
+  username: string;
+  name: string;
+}
+
+export interface MerchantSelectionResponse {
+  success: boolean;
+  result: MerchantSelection[];
+}
+
 export interface AdminPaymentsResponse {
   success: boolean;
   payments: AdminPayment[];

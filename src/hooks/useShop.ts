@@ -344,9 +344,12 @@ export function useShopPayouts(filters: PayoutFilters = {}) {
       if (filters.network) params.append('network', filters.network);
       if (filters.periodFrom) params.append('periodFrom', filters.periodFrom);
       if (filters.periodTo) params.append('periodTo', filters.periodTo);
+<<<<<<< HEAD
       // Поддержка старых полей для совместимости
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
+=======
+>>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
       
       const queryString = params.toString();
       const response = await api.get<ApiResponse<{

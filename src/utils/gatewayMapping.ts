@@ -138,9 +138,15 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '1111': {
     id: '1111',
     name: 'MasterCard',
+<<<<<<< HEAD
     displayName: 'Gateway 1111 - Mastercard Global',
     description: 'Global payment processing - ID: 1111',
     features: ['EUR', 'USD'],
+=======
+    displayName: 'Gateway 1111 - Bank Card - MasterCard',
+    description: 'MasterCard payment processing - ID: 1111',
+    features: ['Cards', 'MasterCard'],
+>>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
     color: 'bg-red-500',
     fee: '10%',
     payout: 'T+5'
