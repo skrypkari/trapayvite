@@ -35,6 +35,8 @@ export interface AdminStatsApiResponse {
       successfulPayments: number;
       totalRevenue: number;
       conversionRate: number;
+      dailyRevenue: { date: string; amount: number }[];
+      dailyPayments: { date: string; count: number }[];
     recentPayments: Array<{
       id: string;
       amount: number;
@@ -106,6 +108,20 @@ export interface AdminPaymentFilters {
   dateTo?: string;
   search?: string;
   currency?: string;
+  sortBy?: 'createdAt' | 'amount';
+  sortOrder?: 'asc' | 'desc';
+}
+
+// ✅ NEW: Merchant selection interface
+export interface MerchantSelection {
+  id: string;
+  username: string;
+  name: string;
+}
+
+export interface MerchantSelectionResponse {
+  success: boolean;
+  result: MerchantSelection[];
 }
 
 export interface AdminPaymentsResponse {
@@ -138,6 +154,7 @@ export interface AdminPayoutStats {
   awaitingPayout: number;
   thisMonth: number;
   availableBalance: number;
+  totalPayments: number; // ✅ NEW: Total payments amount for statistics card
 }
 
 export interface AdminPayoutMerchant {
@@ -148,6 +165,8 @@ export interface AdminPayoutMerchant {
   merchantUrl: string;
   totalAmountUSDT: number;
   totalAmountAfterCommissionUSDT: number;
+  totalPayout: number; // ✅ NEW: Total payout amount
+  thisMonth: number;   // ✅ NEW: This month payout amount
   paymentsCount: number;
   oldestPaymentDate: string;
   gatewayBreakdown: Array<{
@@ -172,8 +191,9 @@ export interface AdminPayout {
   shopUsername: string;
   amount: number;
   network: string;
+  wallet: string; // ✅ NEW: Add wallet field
   status: 'PENDING' | 'COMPLETED' | 'REJECTED';
-  walletAddress: string;
+  walletAddress: string; // Keep for backward compatibility
   txid?: string;
   notes?: string;
   createdAt: string;
@@ -195,6 +215,8 @@ export interface AdminPayoutFilters {
   search?: string;
   network?: string;
   status?: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  periodFrom?: string;
+  periodTo?: string;
 }
 
 export interface AdminPayoutMerchantsResponse {
@@ -223,9 +245,11 @@ export interface CreatePayoutData {
   shopId: string;
   amount: number;
   network: string;
+  wallet: string; // ✅ NEW: Add wallet field
   notes?: string;
   periodFrom?: string;
   periodTo?: string;
+  txid?: string;
 }
 
 // ===== NEW: MERCHANT STATISTICS TYPES =====
@@ -302,6 +326,8 @@ export const adminKeys = {
   payoutMerchantsList: (filters?: AdminPayoutMerchantsFilters) => [...adminKeys.payoutMerchants(), 'list', filters] as const,
   payoutsList: (filters?: AdminPayoutFilters) => [...adminKeys.payouts(), 'list', filters] as const,
   payout: (id: string) => [...adminKeys.payouts(), 'detail', id] as const,
+  merchants: () => [...adminKeys.all, 'merchants'] as const,
+  merchantSelection: () => [...adminKeys.merchants(), 'selection'] as const,
   merchantStats: () => [...adminKeys.all, 'merchantStats'] as const,
   merchantStatsList: (filters?: MerchantStatisticsFilters) => [...adminKeys.merchantStats(), 'list', filters] as const,
 };
@@ -361,7 +387,7 @@ export function useAdminDashboardStats(period: string = '30d') {
         totalUsers: overview.totalShops, // Map totalShops to totalUsers
         totalPayments: overview.totalPayments,
         averagePayment: overview.totalPayments > 0 ? overview.totalRevenue / overview.totalPayments : 0,
-        dailyRevenue: [] // API doesn't provide this yet, so empty array
+        dailyRevenue: overview.dailyRevenue || [] // Use dailyRevenue from API response
       };
       
       console.log('🔍 Transformed stats:', transformedStats);
@@ -391,15 +417,20 @@ export function useAdminPayments(filters?: AdminPaymentFilters) {
       if (filters?.dateTo) params.append('dateTo', filters.dateTo);
       if (filters?.search) params.append('search', filters.search);
       if (filters?.currency) params.append('currency', filters.currency);
+      if (filters?.sortBy) params.append('sortBy', filters.sortBy);
+      if (filters?.sortOrder) params.append('sortOrder', filters.sortOrder);
       
       const queryString = params.toString();
-      const response = await api.get<AdminPaymentsResponse>(
-        `/admin/payments${queryString ? `?${queryString}` : ''}`
-      );
+      const url = `/admin/payments${queryString ? `?${queryString}` : ''}`;
+      
+      // Debug: log the generated URL
+      console.log('🌐 Admin payments API URL:', url);
+      
+      const response = await api.get<AdminPaymentsResponse>(url);
       
       return response;
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
@@ -432,6 +463,21 @@ export function useUpdatePaymentStatus() {
       // Update specific payment cache
       queryClient.setQueryData(adminKeys.payment(variables.id), data);
     },
+  });
+}
+
+// ===== NEW: MERCHANT SELECTION HOOK =====
+
+// Hook to get merchant selection list for filters
+export function useAdminMerchantSelection() {
+  return useQuery({
+    queryKey: adminKeys.merchantSelection(),
+    queryFn: async () => {
+      const response = await api.get<MerchantSelectionResponse>('/admin/merchants/selection');
+      return response.result;
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes - merchants don't change often
+    gcTime: 1000 * 60 * 30, // 30 minutes
   });
 }
 
@@ -472,7 +518,7 @@ export function useAdminPayoutMerchants(filters?: AdminPayoutMerchantsFilters) {
       
       return response;
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
@@ -489,6 +535,8 @@ export function useAdminPayouts(filters?: AdminPayoutFilters) {
       if (filters?.search) params.append('search', filters.search);
       if (filters?.network) params.append('network', filters.network);
       if (filters?.status) params.append('status', filters.status);
+      if (filters?.periodFrom) params.append('periodFrom', filters.periodFrom);
+      if (filters?.periodTo) params.append('periodTo', filters.periodTo);
       
       const queryString = params.toString();
       const response = await api.get<AdminPayoutsResponse>(
@@ -497,7 +545,7 @@ export function useAdminPayouts(filters?: AdminPayoutFilters) {
       
       return response;
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
@@ -600,6 +648,7 @@ export function useAdmin() {
     usePayments: useAdminPayments,
     usePayment: useAdminPayment,
     useUpdatePaymentStatus: useUpdatePaymentStatus,
+    useMerchantSelection: useAdminMerchantSelection,
     
     // Payouts
     usePayoutStats: useAdminPayoutStats,

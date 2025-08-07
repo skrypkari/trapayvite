@@ -105,7 +105,7 @@ const WebhookLogDetailsModal: React.FC<{
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
                 <div className="text-sm text-gray-900">
-                  {format(new Date(log.createdAt), 'PPpp')}
+                  {format(new Date(log.createdAt), 'dd.MM.yy HH:mm')}
                 </div>
               </div>
             </div>
@@ -265,7 +265,7 @@ const Integration: React.FC = () => {
   ];
 
   const codeExamples = {
-    curl: `curl -X POST https://api.trapay.com/payments/create \\
+    curl: `curl -X POST https://api.trapay.uk/payments/create \\
   -H "Content-Type: application/json" \\
   -d '{
     "public_key": ${profile?.publicKey || 'your_api_key'},
@@ -313,7 +313,7 @@ payment = client.payments.create(
           <p className="mt-1 text-sm text-gray-500">Manage your API keys, webhooks, and view documentation</p>
         </div>
         <a
-          href="https://docs.trapay.com"
+          href="https://doc.trapay.uk"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary hover:bg-primary-dark transition-colors"
@@ -634,7 +634,7 @@ payment = client.payments.create(
                         <XCircle className="h-5 w-5 text-red-500" />
                       )}
                     </div>
-                    <div className="text-xs text-gray-500">{format(new Date(log.createdAt), 'MMM d, HH:mm')}</div>
+                    <div className="text-xs text-gray-500">{format(new Date(log.createdAt), 'dd.MM.yy HH:mm')}</div>
                     <div className="mt-2 flex items-center space-x-2">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                         log.statusCode >= 200 && log.statusCode < 300 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

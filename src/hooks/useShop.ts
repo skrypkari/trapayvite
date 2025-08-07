@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { convertGatewayNamesToIds, convertGatewayIdsToNames, getGatewayNameFromId } from '../utils/gatewayMapping';
+import { convertGatewayNamesToIds, convertGatewayIdsToNames } from '../utils/gatewayMapping';
 
 export interface ShopProfile {
   id: string;
@@ -18,7 +18,9 @@ export interface ShopProfile {
   gatewaySettings?: {
     [gatewayName: string]: { // Gateway names as keys from server
       commission: number;
-      // ✅ REMOVED: payoutDelay field as per API changes
+      minAmount?: number;
+      maxAmount?: number;
+      payoutDelay?: number;
     };
   };
   wallets?: {
@@ -34,19 +36,19 @@ export interface ShopPayment {
   id: string;
   shopId: string;
   gateway: string; // This will be gateway ID
-  productName: string;
+  product_name: string;
   amount: number;
   currency: string;
   status: 'PENDING' | 'PROCESSING' | 'PAID' | 'EXPIRED' | 'FAILED';
-  createdAt: string;
-  updatedAt?: string;
-  customerEmail?: string;
-  customerName?: string;
+  created_at: string;
+  updated_at?: string;
+  customer_email?: string;
+  customer_name?: string;
   // ✅ NEW: Customer location and device info
-  customerCountry?: string;
-  customerIp?: string;
-  customerUa?: string;
-  webhookLogs?: WebhookLog[];
+  customer_country?: string;
+  customer_ip?: string;
+  customer_ua?: string;
+  webhook_logs?: WebhookLog[];
   // ✅ NEW: Failure message field
   failure_message?: string;
   // ✅ NEW: Transaction URLs field
@@ -57,12 +59,15 @@ export interface ShopPayment {
 export interface ShopPayout {
   id: string;
   amount: number;
-  network: string; // e.g., "polygon", "trc20", "erc20"
+  network: string; // e.g., "USDT TRC20", "USDT Polygon", "USDC Polygon" - читаемые названия из API
+  wallet: string; // ✅ NEW: Add wallet field
   status: 'PENDING' | 'COMPLETED' | 'REJECTED';
-  txid?: string;
-  notes?: string;
+  txid?: string | null;
+  notes?: string | null;
+  periodFrom?: string | null; // ✅ NEW: Период начала payout
+  periodTo?: string | null;   // ✅ NEW: Период окончания payout
   createdAt: string;
-  paidAt?: string;
+  paidAt?: string | null;
 }
 
 // Webhook Log Interface
@@ -99,7 +104,9 @@ export interface ShopStatistics {
   totalPayments: number;
   successfulPayments: number;
   totalAmount: number;
+  totalRevenue?: number; // ✅ NEW: API response field
   averageAmount: number;
+  conversionRate?: number; // ✅ NEW: API response field
   paymentsByStatus: {
     PAID: number;
     PENDING: number;
@@ -130,7 +137,7 @@ export interface ApiResponse<T> {
 export interface PaginatedResponse<T> {
   success: boolean;
   result: {
-    [key: string]: T[];
+    [key: string]: T[] | Pagination;
     pagination: Pagination;
   };
 }
@@ -149,8 +156,10 @@ export interface PayoutFilters {
   limit?: number;
   status?: 'PENDING' | 'COMPLETED' | 'REJECTED';
   network?: string; // e.g., "polygon", "trc20", "erc20"
-  dateFrom?: string; // YYYY-MM-DD
-  dateTo?: string; // YYYY-MM-DD
+  periodFrom?: string; // YYYY-MM-DD ✅ NEW: Фильтр по дате начала периода
+  periodTo?: string; // YYYY-MM-DD ✅ NEW: Фильтр по дате окончания периода
+  dateFrom?: string; // YYYY-MM-DD - для совместимости
+  dateTo?: string; // YYYY-MM-DD - для совместимости
 }
 
 export interface WebhookLogFilters {
@@ -279,7 +288,13 @@ export function useShopPayments(filters: PaymentFilters = {}) {
       if (filters.currency) params.append('currency', filters.currency); // ✅ NEW: Added currency filter
       
       const queryString = params.toString();
-      const response = await api.get<PaginatedResponse<ShopPayment>>(
+      const response = await api.get<{
+        success: boolean;
+        result: {
+          payments: ShopPayment[];
+          pagination: Pagination;
+        };
+      }>(
         `/shop/payments${queryString ? `?${queryString}` : ''}`
       );
       
@@ -294,7 +309,7 @@ export function useShopPayments(filters: PaymentFilters = {}) {
         pagination: response.result.pagination
       };
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -327,6 +342,9 @@ export function useShopPayouts(filters: PayoutFilters = {}) {
       if (filters.limit) params.append('limit', filters.limit.toString());
       if (filters.status) params.append('status', filters.status);
       if (filters.network) params.append('network', filters.network);
+      if (filters.periodFrom) params.append('periodFrom', filters.periodFrom);
+      if (filters.periodTo) params.append('periodTo', filters.periodTo);
+      // Поддержка старых полей для совместимости
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
       
@@ -343,7 +361,7 @@ export function useShopPayouts(filters: PayoutFilters = {}) {
         pagination: response.result.pagination
       };
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -388,7 +406,13 @@ export function useWebhookLogs(filters: WebhookLogFilters = {}) {
       if (filters.paymentId) params.append('paymentId', filters.paymentId);
       
       const queryString = params.toString();
-      const response = await api.get<PaginatedResponse<WebhookLog>>(
+      const response = await api.get<{
+        success: boolean;
+        result: {
+          logs: WebhookLog[];
+          pagination: Pagination;
+        };
+      }>(
         `/shop/webhook-logs${queryString ? `?${queryString}` : ''}`
       );
       
@@ -397,7 +421,7 @@ export function useWebhookLogs(filters: WebhookLogFilters = {}) {
         pagination: response.result.pagination
       };
     },
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 }
 
@@ -413,11 +437,32 @@ export function useShopStatistics(period: string = '30d') {
       
       console.log('🔍 Shop statistics API response:', stats); // Debug log
       
+      // Ensure stats is not null/undefined
+      if (!stats) {
+        return {
+          totalPayments: 0,
+          successfulPayments: 0,
+          totalAmount: 0,
+          averageAmount: 0,
+          paymentsByStatus: {
+            PAID: 0,
+            PENDING: 0,
+            PROCESSING: 0,
+            FAILED: 0,
+            EXPIRED: 0
+          },
+          paymentsByGateway: {},
+          recentPayments: [],
+          dailyRevenue: [],
+          dailyPayments: []
+        };
+      }
+      
       return {
         totalPayments: stats.totalPayments || 0,
         successfulPayments: stats.successfulPayments || 0,
-        totalRevenue: stats.totalRevenue || 0,
-        conversionRate: stats.conversionRate || 0,
+        totalAmount: stats.totalRevenue || 0, // ✅ Map totalRevenue to totalAmount
+        averageAmount: stats.averageAmount || 0,
         paymentsByStatus: stats.paymentsByStatus || {
           PAID: 0,
           PENDING: 0,
@@ -426,7 +471,10 @@ export function useShopStatistics(period: string = '30d') {
           EXPIRED: 0
         },
         paymentsByGateway: stats.paymentsByGateway || {},
-        recentPayments: stats.recentPayments || [],
+        recentPayments: (stats.recentPayments || []).map((payment: any) => ({
+          ...payment,
+          gateway: convertGatewayNamesToIds([payment.gateway])[0] // Convert gateway name to ID
+        })),
         dailyRevenue: stats.dailyRevenue || [],
         dailyPayments: stats.dailyPayments || []
       };
@@ -520,7 +568,7 @@ export function useUpdateWebhookSettings() {
       }>('/shop/integrations/webhook', data);
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate both webhook settings and shop settings queries
       queryClient.invalidateQueries({ queryKey: [...shopKeys.settings(), 'webhook'] });
       queryClient.invalidateQueries({ queryKey: shopKeys.settings() });

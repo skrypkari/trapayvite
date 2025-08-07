@@ -52,6 +52,7 @@ const MerchantDetailsModal: React.FC<{
   const [selectedNetwork, setSelectedNetwork] = useState<string>('');
   const [payoutAmount, setPayoutAmount] = useState<string>(merchant.totalAmountAfterCommissionUSDT.toString());
   const [notes, setNotes] = useState<string>('');
+  const [txid, setTxid] = useState<string>('');
   // ✅ NEW: Period selection state
   const [periodFrom, setPeriodFrom] = useState<Date | null>(null);
   const [periodTo, setPeriodTo] = useState<Date | null>(null);
@@ -109,11 +110,20 @@ const MerchantDetailsModal: React.FC<{
       return;
     }
 
+    // ✅ NEW: Get wallet address for selected network
+    const selectedNetworkData = availableNetworks.find(n => n.value === selectedNetwork);
+    if (!selectedNetworkData) {
+      toast.error('Selected network not found');
+      return;
+    }
+
     const payoutData: CreatePayoutData = {
       shopId: merchant.id,
       amount,
       network: selectedNetwork,
-      notes: notes.trim() || undefined
+      wallet: selectedNetworkData.address, // ✅ NEW: Add wallet address
+      notes: notes.trim() || undefined,
+      txid: txid.trim() || undefined
     };
 
     // ✅ NEW: Add period fields if selected
@@ -220,7 +230,7 @@ const MerchantDetailsModal: React.FC<{
               <div className="p-4 bg-orange-50 rounded-xl border border-orange-200">
                 <div className="text-sm font-medium text-orange-700 mb-1">Oldest Payment</div>
                 <div className="text-sm font-medium text-orange-900">
-                  {format(new Date(merchant.oldestPaymentDate), 'MMM d, yyyy')}
+                  {format(new Date(merchant.oldestPaymentDate), 'dd.MM.yy')}
                 </div>
               </div>
             </div>
@@ -340,7 +350,7 @@ const MerchantDetailsModal: React.FC<{
                       >
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className={periodFrom ? 'text-gray-900' : 'text-gray-500'}>
-                          {periodFrom ? format(periodFrom, 'MMM d, yyyy') : 'Select start date'}
+                          {periodFrom ? format(periodFrom, 'dd.MM.yy') : 'Select start date'}
                         </span>
                       </button>
                       <AnimatePresence>
@@ -367,7 +377,7 @@ const MerchantDetailsModal: React.FC<{
                       >
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className={periodTo ? 'text-gray-900' : 'text-gray-500'}>
-                          {periodTo ? format(periodTo, 'MMM d, yyyy') : 'Select end date'}
+                          {periodTo ? format(periodTo, 'dd.MM.yy') : 'Select end date'}
                         </span>
                       </button>
                       <AnimatePresence>
@@ -401,6 +411,22 @@ const MerchantDetailsModal: React.FC<{
                   placeholder="Add notes for this payout..."
                   rows={3}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Transaction ID (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={txid}
+                  onChange={(e) => setTxid(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono"
+                  placeholder="Enter transaction hash/ID"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Transaction hash from the blockchain network
+                </p>
               </div>
 
               <div className="flex justify-end space-x-3">
@@ -521,10 +547,10 @@ const PayoutDetailsModal: React.FC<{
                 <div className="text-sm font-medium text-gray-500 mb-1">Wallet Address</div>
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-900 font-mono break-all mr-2">
-                    {payout.walletAddress}
+                    {payout.wallet || payout.walletAddress} {/* ✅ NEW: Use wallet field first, fallback to walletAddress */}
                   </div>
                   <button
-                    onClick={() => handleCopy(payout.walletAddress, 'wallet-address')}
+                    onClick={() => handleCopy(payout.wallet || payout.walletAddress, 'wallet-address')}
                     className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                   >
                     {showCopied === 'wallet-address' ? (
@@ -539,7 +565,7 @@ const PayoutDetailsModal: React.FC<{
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
                 <div className="text-sm text-gray-900">
-                  {format(new Date(payout.createdAt), 'PPpp')}
+                  {format(new Date(payout.createdAt), 'dd.MM.yy HH:mm')}
                 </div>
               </div>
 
@@ -547,7 +573,7 @@ const PayoutDetailsModal: React.FC<{
                 <div className="p-4 bg-gray-50 rounded-xl">
                   <div className="text-sm font-medium text-gray-500 mb-1">Paid At</div>
                   <div className="text-sm text-gray-900">
-                    {format(new Date(payout.paidAt), 'PPpp')}
+                    {format(new Date(payout.paidAt), 'dd.MM.yy HH:mm')}
                   </div>
                 </div>
               )}
@@ -577,8 +603,8 @@ const PayoutDetailsModal: React.FC<{
                 <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
                   <div className="text-sm font-medium text-blue-700 mb-1">Payout Period</div>
                   <div className="text-sm text-blue-900">
-                    <div>From: {format(new Date(payout.periodFrom), 'MMM d, yyyy')}</div>
-                    <div>To: {format(new Date(payout.periodTo), 'MMM d, yyyy')}</div>
+                    <div>From: {format(new Date(payout.periodFrom), 'dd.MM.yy')}</div>
+                    <div>To: {format(new Date(payout.periodTo), 'dd.MM.yy')}</div>
                   </div>
                 </div>
               )}
@@ -639,6 +665,10 @@ const AdminPayouts: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [networkFilter, setNetworkFilter] = useState<string>('all');
   const [minAmount, setMinAmount] = useState<string>('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [isStartDatePickerOpen, setIsStartDatePickerOpen] = useState(false);
+  const [isEndDatePickerOpen, setIsEndDatePickerOpen] = useState(false);
   const [selectedMerchant, setSelectedMerchant] = useState<AdminPayoutMerchant | null>(null);
   const [selectedPayout, setSelectedPayout] = useState<AdminPayout | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -671,7 +701,9 @@ const AdminPayouts: React.FC = () => {
     search: searchTerm || undefined,
     network: networkFilter !== 'all' ? networkFilter : undefined,
     status: statusFilter !== 'all' ? statusFilter as any : undefined,
-  }), [currentPage, pageSize, searchTerm, networkFilter, statusFilter]);
+    periodFrom: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
+    periodTo: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
+  }), [currentPage, pageSize, searchTerm, networkFilter, statusFilter, startDate, endDate]);
 
   const { data: merchantsData, isLoading: merchantsLoading } = usePayoutMerchants(merchantFilters);
   const { data: payoutsData, isLoading: payoutsLoading } = usePayouts(payoutFilters);
@@ -832,11 +864,11 @@ const AdminPayouts: React.FC = () => {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Available Balance</p>
+                <p className="text-sm text-gray-500">Total Payments</p>
                 <p className="text-lg md:text-2xl font-semibold text-gray-900">
-                  {stats.availableBalance.toLocaleString()} USDT
+                  {stats.totalPayments.toLocaleString()} USDT
                 </p>
-                <p className="text-xs text-gray-400 mt-1">Before commission</p>
+                <p className="text-xs text-gray-400 mt-1">Total payment amount</p>
               </div>
             </motion.div>
           </>
@@ -898,6 +930,52 @@ const AdminPayouts: React.FC = () => {
                 </div>
               ) : (
                 <>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsStartDatePickerOpen(true)}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                    >
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
+                        {startDate ? format(startDate, 'dd.MM.yy') : 'Start date'}
+                      </span>
+                    </button>
+                    <AnimatePresence>
+                      {isStartDatePickerOpen && (
+                        <DatePicker
+                          value={startDate}
+                          onChange={(date) => {
+                            setStartDate(date);
+                            setIsStartDatePickerOpen(false);
+                          }}
+                          onClose={() => setIsStartDatePickerOpen(false)}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsEndDatePickerOpen(true)}
+                      className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-left flex items-center space-x-3 hover:border-primary transition-all duration-200"
+                    >
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
+                        {endDate ? format(endDate, 'dd.MM.yy') : 'End date'}
+                      </span>
+                    </button>
+                    <AnimatePresence>
+                      {isEndDatePickerOpen && (
+                        <DatePicker
+                          value={endDate}
+                          onChange={(date) => {
+                            setEndDate(date);
+                            setIsEndDatePickerOpen(false);
+                          }}
+                          onClose={() => setIsEndDatePickerOpen(false)}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </div>
                   <CustomSelect
                     value={statusFilter}
                     onChange={setStatusFilter}
@@ -934,16 +1012,16 @@ const AdminPayouts: React.FC = () => {
                       <span className="text-sm font-medium text-gray-500">Merchant</span>
                     </th>
                     <th className="text-left px-6 py-4">
-                      <span className="text-sm font-medium text-gray-500">Total Amount</span>
+                      <span className="text-sm font-medium text-gray-500">Total Payout</span>
                     </th>
                     <th className="text-left px-6 py-4">
                       <span className="text-sm font-medium text-gray-500">After Commission</span>
                     </th>
                     <th className="text-left px-6 py-4">
-                      <span className="text-sm font-medium text-gray-500">Payments</span>
+                      <span className="text-sm font-medium text-gray-500">This Month</span>
                     </th>
                     <th className="text-left px-6 py-4">
-                      <span className="text-sm font-medium text-gray-500">Oldest Payment</span>
+                      <span className="text-sm font-medium text-gray-500">Payments</span>
                     </th>
                     <th className="text-right px-6 py-4"></th>
                   </tr>
@@ -959,7 +1037,7 @@ const AdminPayouts: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <span className="text-sm font-medium text-gray-900">
-                          {merchant.totalAmountUSDT.toLocaleString()} USDT
+                          {merchant.totalPayout.toLocaleString()} USDT
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -968,12 +1046,12 @@ const AdminPayouts: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-gray-600">{merchant.paymentsCount}</span>
+                        <span className="text-sm font-medium text-blue-600">
+                          {merchant.thisMonth.toLocaleString()} USDT
+                        </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-sm text-gray-600">
-                          {format(new Date(merchant.oldestPaymentDate), 'MMM d, yyyy')}
-                        </span>
+                        <span className="text-sm text-gray-600">{merchant.paymentsCount}</span>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end space-x-2">
@@ -1005,7 +1083,6 @@ const AdminPayouts: React.FC = () => {
                     <th className="text-left px-6 py-4">
                       <button className="flex items-center space-x-2 text-sm font-medium text-gray-500">
                         <span>Date</span>
-                        <ArrowUpDown className="h-4 w-4" />
                       </button>
                     </th>
                     <th className="text-left px-6 py-4">
@@ -1017,11 +1094,13 @@ const AdminPayouts: React.FC = () => {
                     <th className="text-left px-6 py-4">
                       <button className="flex items-center space-x-2 text-sm font-medium text-gray-500">
                         <span>Amount</span>
-                        <ArrowUpDown className="h-4 w-4" />
                       </button>
                     </th>
                     <th className="text-left px-6 py-4">
                       <span className="text-sm font-medium text-gray-500">Network</span>
+                    </th>
+                    <th className="text-left px-6 py-4">
+                      <span className="text-sm font-medium text-gray-500">Wallet</span>
                     </th>
                     <th className="text-left px-6 py-4">
                       <span className="text-sm font-medium text-gray-500">Status</span>
@@ -1041,7 +1120,7 @@ const AdminPayouts: React.FC = () => {
                     <tr key={payout.id} className="border-b border-gray-100 hover:bg-gray-50/50">
                       <td className="px-6 py-4">
                         <span className="text-sm text-gray-500">
-                          {format(new Date(payout.createdAt), 'MMM d, yyyy')}
+                          {format(new Date(payout.createdAt), 'dd.MM.yy')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -1065,6 +1144,12 @@ const AdminPayouts: React.FC = () => {
                           <Bitcoin className="h-4 w-4 text-gray-400" />
                           <span className="text-sm text-gray-900 capitalize">{payout.network}</span>
                         </div>
+                      </td>
+                      {/* ✅ NEW: Wallet column */}
+                      <td className="px-6 py-4">
+                        <span className="text-sm font-mono text-gray-600">
+                          {(payout.wallet || payout.walletAddress)?.slice(0, 8)}...
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         {payout.status === 'COMPLETED' && (
@@ -1090,8 +1175,8 @@ const AdminPayouts: React.FC = () => {
                       <td className="px-6 py-4">
                         {payout.periodFrom && payout.periodTo ? (
                           <div className="text-sm text-gray-600">
-                            <div>{format(new Date(payout.periodFrom), 'MMM d')}</div>
-                            <div className="text-xs text-gray-400">to {format(new Date(payout.periodTo), 'MMM d')}</div>
+                            <div>{format(new Date(payout.periodFrom), 'dd.MM.yy')} -</div>
+                            <div className="text-xs text-gray-400">{format(new Date(payout.periodTo), 'dd.MM.yy')}</div>
                           </div>
                         ) : (
                           <span className="text-sm text-gray-400">-</span>

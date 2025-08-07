@@ -21,6 +21,9 @@ export interface User {
   gatewaySettings?: {
     [gatewayId: string]: {
       commission: number;
+      minAmount?: number;
+      maxAmount?: number;
+      payoutDelay?: number;
     };
   };
   // New wallets field
@@ -35,6 +38,9 @@ export interface User {
 export interface GatewaySettings {
   [gatewayId: string]: {
     commission: number;
+    minAmount: number;
+    maxAmount: number;
+    payoutDelay: number;
   };
 }
 
@@ -163,10 +169,15 @@ const transformUser = (serverUser: any): User => {
     // Convert gateway settings keys from names to IDs if they exist
     gatewaySettings: serverUser.gatewaySettings ? (() => {
       const gatewaySettingsWithIds: Record<string, any> = {};
-      Object.entries(serverUser.gatewaySettings).forEach(([gatewayName, settings]) => {
+      Object.entries(serverUser.gatewaySettings).forEach(([gatewayName, settings]: [string, any]) => {
         const gatewayId = convertGatewayNamesToIds([gatewayName])[0];
         if (gatewayId) {
-          gatewaySettingsWithIds[gatewayId] = { commission: settings.commission };
+          gatewaySettingsWithIds[gatewayId] = {
+            commission: settings.commission || 0,
+            minAmount: settings.minAmount || 0,
+            maxAmount: settings.maxAmount || 0,
+            payoutDelay: settings.payoutDelay || 0
+          };
         }
       });
       return gatewaySettingsWithIds;
@@ -223,34 +234,54 @@ export const validateUserData = (data: EditUserFormData): ValidationError[] => {
     }
   }
 
-  // Payment gateways validation
-  if (!data.paymentGateways || data.paymentGateways.length === 0) {
-    errors.push({ field: 'paymentGateways', message: 'At least one payment gateway must be selected' });
-  }
+  // Payment gateways validation - Allow empty array (user can have no gateways)
+  // if (!data.paymentGateways || data.paymentGateways.length === 0) {
+  //   errors.push({ field: 'paymentGateways', message: 'At least one payment gateway must be selected' });
+  // }
 
-  // Gateway settings validation (now required)
-  if (!data.gatewaySettings || Object.keys(data.gatewaySettings).length === 0) {
-    errors.push({ field: 'gatewaySettings', message: 'Gateway settings are required for all selected gateways' });
-  } else {
-    // Validate that all selected gateways have settings
-    data.paymentGateways.forEach(gatewayId => {
-      if (!data.gatewaySettings[gatewayId]) {
-        errors.push({ 
-          field: `gatewaySettings.${gatewayId}`, 
-          message: `Settings required for Gateway ${gatewayId}` 
-        });
-      }
-    });
+  // Gateway settings validation (only if gateways are selected)
+  if (data.paymentGateways && data.paymentGateways.length > 0) {
+    if (!data.gatewaySettings || Object.keys(data.gatewaySettings).length === 0) {
+      errors.push({ field: 'gatewaySettings', message: 'Gateway settings are required for all selected gateways' });
+    } else {
+      // Validate that all selected gateways have settings
+      data.paymentGateways.forEach(gatewayId => {
+        if (!data.gatewaySettings[gatewayId]) {
+          errors.push({ 
+            field: `gatewaySettings.${gatewayId}`, 
+            message: `Settings required for Gateway ${gatewayId}` 
+          });
+        }
+      });
 
-    // Validate gateway settings values
-    Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
-      if (settings.commission < 0 || settings.commission > 100) {
-        errors.push({ 
-          field: `gatewaySettings.${gatewayId}.commission`, 
-          message: `Commission for Gateway ${gatewayId} must be between 0 and 100` 
-        });
-      }
-    });
+      // Validate gateway settings values
+      Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
+        if (settings.commission < 0 || settings.commission > 100) {
+          errors.push({ 
+            field: `gatewaySettings.${gatewayId}.commission`, 
+            message: `Commission for Gateway ${gatewayId} must be between 0 and 100` 
+          });
+        }
+        if (settings.minAmount < 0) {
+          errors.push({ 
+            field: `gatewaySettings.${gatewayId}.minAmount`, 
+            message: `Min amount for Gateway ${gatewayId} must be 0 or greater` 
+          });
+        }
+        if (settings.maxAmount < 0) {
+          errors.push({ 
+            field: `gatewaySettings.${gatewayId}.maxAmount`, 
+            message: `Max amount for Gateway ${gatewayId} must be 0 or greater` 
+          });
+        }
+        if (settings.minAmount > settings.maxAmount && settings.maxAmount > 0) {
+          errors.push({ 
+            field: `gatewaySettings.${gatewayId}.maxAmount`, 
+            message: `Max amount for Gateway ${gatewayId} must be greater than min amount` 
+          });
+        }
+      });
+    }
   }
 
   // Status validation
@@ -297,7 +328,12 @@ export function useCreateUser() {
       Object.entries(user.gatewaySettings).forEach(([gatewayId, settings]) => {
         const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
         if (gatewayName) {
-          gatewaySettingsForApi[gatewayName] = { commission: settings.commission };
+          gatewaySettingsForApi[gatewayName] = { 
+            commission: settings.commission,
+            minAmount: settings.minAmount,
+            maxAmount: settings.maxAmount,
+            payoutDelay: settings.payoutDelay
+          };
         }
       });
       
@@ -315,6 +351,9 @@ export function useCreateUser() {
       if (user.wallets) {
         requestData.wallets = user.wallets;
       }
+      
+      console.log('Creating user with data:', requestData);
+      console.log('Gateway settings being sent:', gatewaySettingsForApi);
       
       const response = await api.post<ApiResponse<any>>('/admin/users', requestData);
       return response;
@@ -385,7 +424,7 @@ export function useGetUsers(filters: UserFilters = {}) {
         throw new Error('Failed to fetch users');
       }
     },
-    keepPreviousData: true, // Keep previous data while loading new page
+    placeholderData: (previousData) => previousData, // Keep previous data while loading new page
   });
 }
 
@@ -395,7 +434,7 @@ export function useUsers(filters?: UserFilters) {
   
   return {
     ...result,
-    data: result.data?.users, // Return just the users array for backward compatibility
+    data: result.data?.users || [], // Return just the users array for backward compatibility
   };
 }
 
@@ -421,6 +460,8 @@ export function useUpdateUser() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EditUserFormData }) => {
+      console.log('🔍 useUpdateUser called with:', { id, data });
+      
       // Validate data before sending
       const validationErrors = validateUserData(data);
       if (validationErrors.length > 0) {
@@ -429,6 +470,8 @@ export function useUpdateUser() {
 
       // Convert gateway IDs to names for API request
       const gatewayNames = convertGatewayIdsToNames(data.paymentGateways);
+      console.log('🔍 Gateway IDs from form:', data.paymentGateways);
+      console.log('🔍 Gateway names for API:', gatewayNames);
       
       // Convert gateway settings keys from IDs to names
       const gatewaySettingsForApi: Record<string, any> = {};
@@ -436,7 +479,12 @@ export function useUpdateUser() {
         Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
           const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
           if (gatewayName) {
-            gatewaySettingsForApi[gatewayName] = { commission: settings.commission };
+            gatewaySettingsForApi[gatewayName] = { 
+              commission: settings.commission,
+              minAmount: settings.minAmount || 0,
+              maxAmount: settings.maxAmount || 0,
+              payoutDelay: settings.payoutDelay || 0
+            };
           }
         });
       }
@@ -462,15 +510,23 @@ export function useUpdateUser() {
         updateData.wallets = data.wallets;
       }
 
+      console.log('🌐 Updating user with data:', updateData);
+      console.log('🌐 Gateway settings being sent:', gatewaySettingsForApi);
+
       const response = await api.put<ApiResponse<any>>(`/admin/users/${id}`, updateData);
+      console.log('✅ Update user response:', response);
       return response;
     },
     onSuccess: (response, variables) => {
+      console.log('✅ useUpdateUser onSuccess called');
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
       if (response.result) {
         queryClient.setQueryData(userKeys.detail(variables.id), transformUser(response.result));
       }
     },
+    onError: (error) => {
+      console.error('❌ useUpdateUser onError:', error);
+    }
   });
 }
 

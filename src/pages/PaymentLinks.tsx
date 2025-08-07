@@ -189,7 +189,22 @@ const GATEWAY_CURRENCIES = {
     { value: 'GBP', label: 'GBP - British Pound' }
   ],
   '1100': [ // KLYME DE - только EUR
-    { value: 'EUR', label: 'EUR - Euro' }
+    { value: 'EUR', label: 'EUR - Euro' },
+    { value: 'USD', label: 'USD - US Dollar' },
+    { value: 'AUD', label: 'AUD - Australian Dollar' },
+    { value: 'CAD', label: 'CAD - Canadian Dollar' },
+    { value: 'GBP', label: 'GBP - British Pound' },
+    { value: 'NOK', label: 'NOK - Norwegian Krone' },
+    { value: 'JPY', label: 'JPY - Japanese Yen' }
+  ],
+  '1111': [ // MasterCard - только карты
+    { value: 'EUR', label: 'EUR - Euro' },
+    { value: 'USD', label: 'USD - US Dollar' },
+    { value: 'AUD', label: 'AUD - Australian Dollar' },
+    { value: 'CAD', label: 'CAD - Canadian Dollar' },
+    { value: 'GBP', label: 'GBP - British Pound' },
+    { value: 'NOK', label: 'NOK - Norwegian Krone' },
+    { value: 'JPY', label: 'JPY - Japanese Yen' }
   ]
 };
 
@@ -752,7 +767,8 @@ const PaymentLinks: React.FC = () => {
         value: gatewayId,
         label: gatewayInfo ? gatewayInfo.displayName : `Gateway ${gatewayId}`
       };
-    }) || [])
+    }) || []),
+    { value: '1111', label: 'MasterCard' },
   ];
 
   const handleCopyLink = (linkUrl: string, id: string) => {

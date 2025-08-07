@@ -590,12 +590,7 @@ const Settings: React.FC = () => {
                   </div>
 
                   <div className="mt-6 flex flex-col sm:flex-row gap-4">
-                    <button 
-                      onClick={() => setShowApiKeysModal(true)}
-                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-                    >
-                      View API Keys
-                    </button>
+
                     <button
                       onClick={() => setShowRevokeConfirm(true)}
                       className="px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors"

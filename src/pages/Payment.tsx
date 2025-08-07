@@ -1,28 +1,516 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Copy, 
-  Check, 
-  ExternalLink, 
-  Clock, 
-  AlertTriangle, 
+import {
+  Copy,
+  Check,
+  AlertTriangle,
   CheckCircle2,
   XCircle,
-  RefreshCw,
-  ArrowLeft,
   Wallet,
-  QrCode,
   Timer,
   CreditCard,
   Shield,
-  Loader2
+  Loader2,
+  ArrowRight,
+  User,
+  Mail
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatCurrency } from '../utils/currency';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { api } from '../lib/api';
 import { getGatewayIdSafe } from '../utils/gatewayMapping';
+
+// ✅ NEW: Interface for MasterCard payment form data
+interface MasterCardFormData {
+  cardNumber: string;
+  expiryMonth: string;
+  expiryYear: string;
+  cvv: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  // ✅ REMOVED: phone, country, city, postCode, addressLine1 - only keep cardholder and email for gateway 1111
+}
+
+// ✅ NEW: Interface for MasterCard payment request
+interface MasterCardPaymentRequest {
+  cardData: {
+    number: string;
+    expire_month: string;
+    expire_year: string;
+    cvv: string;
+  };
+  cardHolder: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    // ✅ REMOVED: country, post_code, city, address_line_1, phone - only keep cardholder and email for gateway 1111
+  };
+  browser: {
+    accept_header: string;
+    color_depth: number;
+    ip: string;
+    language: string;
+    screen_height: number;
+    screen_width: number;
+    time_different: number;
+    user_agent: string;
+    java_enabled: number;
+    window_height: number;
+    window_width: number;
+  };
+}
+
+// ✅ NEW: MasterCard Payment Form Component
+const MasterCardForm: React.FC<{
+  paymentData: PaymentData;
+  onSuccess: (redirectUrl?: string) => void;
+  onFailure: (reason: string, redirectUrl?: string) => void;
+}> = ({ paymentData, onSuccess, onFailure }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<MasterCardFormData>({
+    cardNumber: '',
+    expiryMonth: '',
+    expiryYear: '',
+    cvv: '',
+    firstName: '',
+    lastName: '',
+    email: ''
+    // ✅ REMOVED: phone, country, city, postCode, addressLine1 - only keep cardholder and email for gateway 1111
+  });
+  const [formErrors, setFormErrors] = useState<Partial<MasterCardFormData>>({});
+
+  // Get user's IP address
+  const getUserIP = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip || '127.0.0.1';
+    } catch (error) {
+      console.error('Failed to get IP:', error);
+      return '127.0.0.1';
+    }
+  };
+
+  // Get browser information
+  const getBrowserInfo = () => {
+    const timezoneOffset = new Date().getTimezoneOffset();
+
+    return {
+      accept_header: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      color_depth: screen.colorDepth || 24,
+      language: navigator.language || 'en-US',
+      screen_height: screen.height,
+      screen_width: screen.width,
+      time_different: -timezoneOffset,
+      user_agent: navigator.userAgent,
+      java_enabled: 0,
+      window_height: window.innerHeight,
+      window_width: window.innerWidth
+    };
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Partial<MasterCardFormData> = {};
+
+    // Card number validation
+    const cardNumber = formData.cardNumber.replace(/\s/g, '');
+    if (!cardNumber) {
+      errors.cardNumber = 'Card number is required';
+    } else if (cardNumber.length < 13 || cardNumber.length > 19) {
+      errors.cardNumber = 'Invalid card number length';
+    } else if (!/^\d+$/.test(cardNumber)) {
+      errors.cardNumber = 'Card number must contain only digits';
+    }
+
+    // Expiry validation
+    const month = parseInt(formData.expiryMonth);
+    if (!formData.expiryMonth || month < 1 || month > 12) {
+      errors.expiryMonth = 'Valid month required (01-12)';
+    }
+
+    const year = parseInt(formData.expiryYear);
+    const currentYear = new Date().getFullYear() % 100;
+    if (!formData.expiryYear || year < currentYear) {
+      errors.expiryYear = 'Valid future year required';
+    }
+
+    // CVV validation
+    if (!formData.cvv || formData.cvv.length < 3 || formData.cvv.length > 4) {
+      errors.cvv = 'Valid CVV required (3-4 digits)';
+    } else if (!/^\d+$/.test(formData.cvv)) {
+      errors.cvv = 'CVV must contain only digits';
+    }
+
+    // Cardholder validation
+    if (!formData.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    }
+    if (!formData.lastName.trim()) {
+      errors.lastName = 'Last name is required';
+    }
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    // ✅ REMOVED: phone, city, postCode, addressLine1 validation - only keep cardholder and email for gateway 1111
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const formatCardNumber = (value: string): string => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
+    }
+  };
+
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCardNumber(e.target.value);
+    setFormData(prev => ({ ...prev, cardNumber: formatted }));
+    if (formErrors.cardNumber) {
+      setFormErrors(prev => ({ ...prev, cardNumber: undefined }));
+    }
+  };
+
+  const handleInputChange = (field: keyof MasterCardFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const userIP = await getUserIP();
+      const browserInfo = getBrowserInfo();
+
+      const requestData: MasterCardPaymentRequest = {
+        cardData: {
+          number: formData.cardNumber.replace(/\s/g, ''),
+          expire_month: formData.expiryMonth.padStart(2, '0'),
+          expire_year: formData.expiryYear,
+          cvv: formData.cvv
+        },
+        cardHolder: {
+          first_name: formData.firstName.trim(),
+          last_name: formData.lastName.trim(),
+          email: formData.email.trim()
+          // ✅ REMOVED: country, post_code, city, address_line_1, phone - only keep cardholder and email for gateway 1111
+        },
+        browser: {
+          ...browserInfo,
+          ip: userIP
+        }
+      };
+
+      const response = await api.post<{
+        success: boolean;
+        message: string;
+        result: {
+          status: string;
+          transactionId?: string;
+          redirectUrl?: string;
+          failureReason?: string;
+          requires3ds?: boolean;
+          gatewayPaymentId?: string;
+          final?: boolean;
+        };
+      }>(`/payments/${paymentData.id}/process-mastercard`, requestData);
+
+      // ✅ NEW: Handle 3DS verification requirement
+      if (response.success && response.result.requires3ds && response.result.redirectUrl) {
+        toast.info('3DS verification required. Redirecting...');
+        // Redirect to 3DS verification page
+        window.location.href = response.result.redirectUrl;
+        return;
+      }
+
+      if (response.success && response.result.status === 'PAID') {
+        toast.success('Payment processed successfully!');
+        onSuccess(response.result.redirectUrl);
+      } else {
+        const reason = response.result?.failureReason || response.message || 'Payment failed';
+        toast.error(reason);
+        onFailure(reason, response.result?.redirectUrl);
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Payment processing failed';
+      toast.error(errorMessage);
+      onFailure(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Card Payment</h2>
+        <p className="text-gray-600 text-sm">
+          Enter your card details to complete the payment
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Card Information */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <CreditCard className="h-5 w-5 mr-2" />
+            Card Information
+          </h3>
+
+          <div className="space-y-4">
+            {/* Card Number */}
+            <div>
+              <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                Card Number *
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <CreditCard className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  id="cardNumber"
+                  value={formData.cardNumber}
+                  onChange={handleCardNumberChange}
+                  className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${formErrors.cardNumber
+                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                      : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="1234 5678 9012 3456"
+                  maxLength={19}
+                  disabled={isSubmitting}
+                />
+              </div>
+              {formErrors.cardNumber && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.cardNumber}</p>
+              )}
+            </div>
+
+            {/* Expiry and CVV */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="expiryMonth" className="block text-sm font-medium text-gray-700 mb-2">
+                  Month *
+                </label>
+                <input
+                  type="text"
+                  id="expiryMonth"
+                  value={formData.expiryMonth}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    handleInputChange('expiryMonth', value);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.expiryMonth
+                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                      : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="MM"
+                  maxLength={2}
+                  disabled={isSubmitting}
+                />
+                {formErrors.expiryMonth && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.expiryMonth}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="expiryYear" className="block text-sm font-medium text-gray-700 mb-2">
+                  Year *
+                </label>
+                <input
+                  type="text"
+                  id="expiryYear"
+                  value={formData.expiryYear}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 2);
+                    handleInputChange('expiryYear', value);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.expiryYear
+                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                      : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="YY"
+                  maxLength={2}
+                  disabled={isSubmitting}
+                />
+                {formErrors.expiryYear && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.expiryYear}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="cvv" className="block text-sm font-medium text-gray-700 mb-2">
+                  CVV *
+                </label>
+                <input
+                  type="text"
+                  id="cvv"
+                  value={formData.cvv}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    handleInputChange('cvv', value);
+                  }}
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.cvv
+                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                      : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="123"
+                  maxLength={4}
+                  disabled={isSubmitting}
+                />
+                {formErrors.cvv && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.cvv}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Billing Information */}
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+            <User className="h-5 w-5 mr-2" />
+            Billing Information
+          </h3>
+
+          <div className="space-y-4">
+            {/* Name */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.firstName
+                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="John"
+                  disabled={isSubmitting}
+                />
+                {formErrors.firstName && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.firstName}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.lastName
+                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="Doe"
+                  disabled={isSubmitting}
+                />
+                {formErrors.lastName && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.lastName}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="email"
+                    id="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${formErrors.email
+                        ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
+                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                      } focus:outline-none focus:ring-2`}
+                    placeholder="john@example.com"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                {formErrors.email && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+                )}
+              </div>
+            </div>
+            {/* ✅ REMOVED: All other fields (phone, address, city, etc.) - only keep cardholder and email for gateway 1111 */}
+          </div>
+        </div>
+
+        {/* Security Notice */}
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-start space-x-3">
+            <div className="flex-shrink-0">
+              <Shield className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-blue-900">Secure Payment</h4>
+              <p className="mt-1 text-sm text-blue-700">
+                Your payment information is encrypted and secure. We use industry-standard security measures to protect your data.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-primary text-white py-4 px-6 rounded-xl font-medium hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Processing Payment...</span>
+            </>
+          ) : (
+            <>
+              <span>Pay {formatCurrency(paymentData.amount, paymentData.currency)}</span>
+              <ArrowRight className="h-5 w-5" />
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+};
 
 interface PaymentData {
   id: string;
@@ -39,15 +527,15 @@ interface PaymentData {
   customer_name?: string;
   invoice_total_sum?: number;
   qr_code?: string;
-  qr_url?: string; 
+  qr_url?: string;
   created_at: string;
   updated_at: string;
   expires_at?: string;
   order_id?: string;
   merchant_brand?: string;
-  external_payment_url?: string; 
-  gateway_order_id?: string; 
-  white_url?: string; 
+  external_payment_url?: string;
+  gateway_order_id?: string;
+  white_url?: string;
 }
 
 // ✅ NEW: Interface for test gateway payment details
@@ -189,7 +677,7 @@ const TestGatewayForm: React.FC<{
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -293,11 +781,10 @@ const TestGatewayForm: React.FC<{
               id="cardNumber"
               value={formData.cardNumber}
               onChange={handleCardNumberChange}
-              className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${
-                formErrors.cardNumber 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+              className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${formErrors.cardNumber
+                  ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                   : 'border-gray-300 focus:border-primary focus:ring-primary/20'
-              } focus:outline-none focus:ring-2`}
+                } focus:outline-none focus:ring-2`}
               placeholder="1234 5678 9012 3456"
               maxLength={19}
               disabled={isSubmitting}
@@ -323,11 +810,10 @@ const TestGatewayForm: React.FC<{
                 setFormErrors(prev => ({ ...prev, cardHolderName: undefined }));
               }
             }}
-            className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-              formErrors.cardHolderName 
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+            className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.cardHolderName
+                ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                 : 'border-gray-300 focus:border-primary focus:ring-primary/20'
-            } focus:outline-none focus:ring-2`}
+              } focus:outline-none focus:ring-2`}
             placeholder="John Doe"
             disabled={isSubmitting}
           />
@@ -353,11 +839,10 @@ const TestGatewayForm: React.FC<{
                   setFormErrors(prev => ({ ...prev, expiryMonth: undefined }));
                 }
               }}
-              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                formErrors.expiryMonth 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+              className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.expiryMonth
+                  ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                   : 'border-gray-300 focus:border-primary focus:ring-primary/20'
-              } focus:outline-none focus:ring-2`}
+                } focus:outline-none focus:ring-2`}
               placeholder="MM"
               maxLength={2}
               disabled={isSubmitting}
@@ -382,11 +867,10 @@ const TestGatewayForm: React.FC<{
                   setFormErrors(prev => ({ ...prev, expiryYear: undefined }));
                 }
               }}
-              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                formErrors.expiryYear 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+              className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.expiryYear
+                  ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                   : 'border-gray-300 focus:border-primary focus:ring-primary/20'
-              } focus:outline-none focus:ring-2`}
+                } focus:outline-none focus:ring-2`}
               placeholder="YY"
               maxLength={2}
               disabled={isSubmitting}
@@ -411,11 +895,10 @@ const TestGatewayForm: React.FC<{
                   setFormErrors(prev => ({ ...prev, cvc: undefined }));
                 }
               }}
-              className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                formErrors.cvc 
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
+              className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.cvc
+                  ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                   : 'border-gray-300 focus:border-primary focus:ring-primary/20'
-              } focus:outline-none focus:ring-2`}
+                } focus:outline-none focus:ring-2`}
               placeholder="123"
               maxLength={4}
               disabled={isSubmitting}
@@ -478,7 +961,7 @@ const Payment: React.FC = () => {
         try {
           const response = await fetch(service);
           const data = await response.json();
-          
+
           // Different services return IP in different fields
           const ip = data.ip || data.query || data.ipAddress;
           if (ip) {
@@ -490,7 +973,7 @@ const Payment: React.FC = () => {
           continue;
         }
       }
-      
+
       console.warn('❌ Failed to get IP from all services');
       return null;
     } catch (error) {
@@ -505,13 +988,13 @@ const Payment: React.FC = () => {
       // Use ipapi.co for country detection
       const response = await fetch(`https://ipapi.co/${ip}/json/`);
       const data = await response.json();
-      
+
       const country = data.country_code || data.country;
       if (country) {
         console.log('✅ Got user country:', country, 'for IP:', ip);
         return country;
       }
-      
+
       console.warn('❌ No country data for IP:', ip);
       return null;
     } catch (error) {
@@ -529,39 +1012,39 @@ const Payment: React.FC = () => {
 
     try {
       console.log('🔍 Collecting customer info for payment:', paymentId);
-      
+
       // Get user agent
       const userAgent = navigator.userAgent;
       console.log('✅ Got user agent:', userAgent);
-      
+
       // Get user IP
       const userIP = await getUserIP();
       if (!userIP) {
         console.warn('❌ Could not get user IP, skipping customer info update');
         return;
       }
-      
+
       // Get user country
       const userCountry = await getUserCountry(userIP);
-      
+
       // Prepare customer info
       const customerInfo: CustomerInfoUpdate = {
         customerIp: userIP,
         customerUa: userAgent
       };
-      
+
       if (userCountry) {
         customerInfo.customerCountry = userCountry;
       }
-      
+
       console.log('🔍 Sending customer info:', customerInfo);
-      
+
       // Send to server
       await api.put(`/payments/${paymentId}/customer`, customerInfo);
-      
+
       console.log('✅ Customer info sent successfully');
       setCustomerInfoSent(true);
-      
+
     } catch (error) {
       console.error('❌ Failed to send customer info:', error);
       // Don't show error to user as this is background functionality
@@ -578,7 +1061,7 @@ const Payment: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`https://apitest.trapay.uk/api/payments/${id}`);
+        const response = await fetch(`https://api.trapay.uk/api/payments/${id}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -587,7 +1070,7 @@ const Payment: React.FC = () => {
 
         if (data.success && data.result) {
           setPaymentData(data.result);
-          
+
           // ✅ NEW: Send customer info after payment data is loaded
           sendCustomerInfo(data.result.id);
         } else {
@@ -632,14 +1115,14 @@ const Payment: React.FC = () => {
 
     const pollStatus = async () => {
       try {
-        const response = await fetch(`https://apitest.trapay.uk/api/payments/${id}`);
+        const response = await fetch(`https://api.trapay.uk/api/payments/${id}`);
         const data = await response.json();
 
         if (data.success && data.result) {
           const newStatus = data.result.status;
           if (newStatus !== paymentData.status) {
             setPaymentData(prev => prev ? { ...prev, status: newStatus } : null);
-            
+
             if (newStatus === 'PAID') {
               toast.success('Payment completed successfully!');
               if (paymentData.success_url) {
@@ -669,7 +1152,7 @@ const Payment: React.FC = () => {
       message: 'Payment processed successfully!',
       redirectUrl
     });
-    
+
     // Update payment data status
     if (paymentData) {
       setPaymentData(prev => prev ? { ...prev, status: 'PAID' } : null);
@@ -682,7 +1165,7 @@ const Payment: React.FC = () => {
       message: reason,
       redirectUrl
     });
-    
+
     // Update payment data status
     if (paymentData) {
       setPaymentData(prev => prev ? { ...prev, status: 'FAILED' } : null);
@@ -709,7 +1192,7 @@ const Payment: React.FC = () => {
 
   // Get display order ID (order_id or fallback to id)
   const getDisplayOrderId = () => {
-    return paymentData?.order_id || paymentData?.gateway_order_id || paymentData?.id ||'';
+    return paymentData?.order_id || paymentData?.gateway_order_id || paymentData?.id || '';
   };
 
   // Маппинг для source_currency
@@ -723,8 +1206,9 @@ const Payment: React.FC = () => {
     TRX: 'TRON',
   };
 
-  // ✅ NEW: Check if this is a test gateway
+
   const isTestGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '0000';
+  const isMasterCardGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '1111';
 
   if (isLoading) {
     return (
@@ -776,7 +1260,7 @@ const Payment: React.FC = () => {
       </div>
     );
   }
-  if (paymentData?.white_url) {
+  if (paymentData?.white_url && !isTestGateway && !isMasterCardGateway) {
     return (
       <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
         <iframe
@@ -790,7 +1274,8 @@ const Payment: React.FC = () => {
   }
   if (
     paymentData?.external_payment_url &&
-    paymentData.external_payment_url.includes('tesoft')
+    paymentData.external_payment_url.includes('tesoft') &&
+    !isTestGateway && !isMasterCardGateway
   ) {
     return (
       <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
@@ -803,7 +1288,7 @@ const Payment: React.FC = () => {
       </div>
     );
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-2xl mx-auto p-4 md:p-6">
@@ -852,11 +1337,20 @@ const Payment: React.FC = () => {
                   />
                 )}
 
+                {/* ✅ NEW: MasterCard Gateway Form */}
+                {paymentData.status === 'PENDING' && isMasterCardGateway && (
+                  <MasterCardForm
+                    paymentData={paymentData}
+                    onSuccess={handleTestPaymentSuccess}
+                    onFailure={handleTestPaymentFailure}
+                  />
+                )}
+
                 {/* Pending State */}
-                {paymentData.status === 'PENDING' && !isTestGateway && (
+                {paymentData.status === 'PENDING' && !isTestGateway && !isMasterCardGateway && (
                   <div className="text-center space-y-6">
                     {/* QR Code Section for Plisio */}
-                    {paymentData.gateway === 'plisio' && paymentData.qr_code && (
+                    {paymentData.gateway === '0001' && paymentData.qr_code && (
                       <>
                         <div>
                           <h2 className="text-xl font-semibold text-gray-900 mb-2">Scan to Pay</h2>
@@ -868,7 +1362,7 @@ const Payment: React.FC = () => {
                         {/* QR Code */}
                         <div className="flex justify-center">
                           <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-                            <img 
+                            <img
                               src={`${paymentData.qr_code}`}
                               alt="Payment QR Code"
                               className="w-48 h-48 object-contain"
@@ -937,28 +1431,6 @@ const Payment: React.FC = () => {
                         )}
                       </>
                     )}
-
-                    {/* External Payment Link for other gateways */}
-                    {paymentData.gateway !== 'plisio' && (
-                      <div className="space-y-6">
-                        <div>
-                          <h2 className="text-xl font-semibold text-gray-900 mb-2">Complete Payment</h2>
-                          <p className="text-gray-600 text-sm">
-                            Click the button below to proceed with your payment
-                          </p>
-                        </div>
-
-                        <a
-                          href={paymentData.payment_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center w-full bg-primary text-white py-4 px-6 rounded-xl font-medium hover:bg-primary-dark transition-colors"
-                        >
-                          Continue to Payment
-                          <ExternalLink className="h-4 w-4 ml-2" />
-                        </a>
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -1008,7 +1480,7 @@ const Payment: React.FC = () => {
                         <div className="text-left">
                           <h4 className="text-sm font-medium text-blue-900">What happens next?</h4>
                           <p className="mt-1 text-sm text-blue-700">
-                            Your transaction is being processed on the blockchain. Once confirmed, 
+                            Your transaction is being processed on the blockchain. Once confirmed,
                             you'll be automatically redirected to the success page.
                           </p>
                         </div>

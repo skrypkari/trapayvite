@@ -165,7 +165,7 @@ const PaymentDetailsModal: React.FC<{
               <div className="p-4 bg-gray-50 rounded-xl">
                 <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
                 <div className="text-sm text-gray-900">
-                  {format(new Date(payment.created_at), 'PPpp')}
+                  {format(new Date(payment.created_at), 'dd.MM.yy HH:mm')}
                 </div>
               </div>
 
@@ -173,7 +173,7 @@ const PaymentDetailsModal: React.FC<{
                 <div className="p-4 bg-gray-50 rounded-xl">
                   <div className="text-sm font-medium text-gray-500 mb-1">Updated At</div>
                   <div className="text-sm text-gray-900">
-                    {format(new Date(payment.updatedAt), 'PPpp')}
+                    {format(new Date(payment.updatedAt), 'dd.MM.yy HH:mm')}
                   </div>
                 </div>
               )}
@@ -327,15 +327,44 @@ const GatewaySettingsModal: React.FC<{
                       <div className="text-sm text-blue-700">Commission</div>
                     </div>
                     
-                   
-
-                    <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                    <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
                       <div className="flex items-center justify-center mb-2">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <Timer className="h-5 w-5 text-purple-600" />
                       </div>
-                      <div className="text-2xl font-bold text-green-900">Active</div>
-                      <div className="text-sm text-green-700">Status</div>
+                      <div className="text-2xl font-bold text-purple-900">{gateway.settings.payoutDelay || 0}d</div>
+                      <div className="text-sm text-purple-700">Payout Delay</div>
                     </div>
+                  </div>
+
+                  {/* Min/Max amounts if available */}
+                  {(gateway.settings.minAmount !== undefined || gateway.settings.maxAmount !== undefined) && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+                        <div className="flex items-center justify-center mb-2">
+                          <ArrowDownLeft className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div className="text-2xl font-bold text-green-900">${gateway.settings.minAmount || 0}</div>
+                        <div className="text-sm text-green-700">Min Amount</div>
+                      </div>
+                      
+                      <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl">
+                        <div className="flex items-center justify-center mb-2">
+                          <ArrowUpRight className="h-5 w-5 text-orange-600" />
+                        </div>
+                        <div className="text-2xl font-bold text-orange-900">
+                          ${gateway.settings.maxAmount ? gateway.settings.maxAmount.toLocaleString() : '∞'}
+                        </div>
+                        <div className="text-sm text-orange-700">Max Amount</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-center p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl">
+                    <div className="flex items-center justify-center mb-2">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div className="text-2xl font-bold text-emerald-900">Active</div>
+                    <div className="text-sm text-emerald-700">Status</div>
                   </div>
 
                   {/* Gateway Description */}
@@ -522,7 +551,22 @@ const Account: React.FC = () => {
   // Available payment gateways with their features (using gateway IDs)
   const availableGateways = Object.values(GATEWAY_INFO).map(gateway => {
     // Get actual settings from profile if available
-    const gatewaySettings = profile?.gatewaySettings?.[gateway.name];
+    // First try to find by gateway name (e.g., "Noda", "Test Gateway") in gatewaySettings
+    let gatewaySettings = null;
+    if (profile?.gatewaySettings) {
+      // Try direct match with gateway name from GATEWAY_INFO
+      gatewaySettings = profile.gatewaySettings[gateway.name];
+      
+      // If not found, try by display name or other variations
+      if (!gatewaySettings) {
+        Object.entries(profile.gatewaySettings).forEach(([key, settings]) => {
+          const keyId = convertGatewayNamesToIds([key])[0];
+          if (keyId === gateway.id) {
+            gatewaySettings = settings;
+          }
+        });
+      }
+    }
     
     return {
       id: gateway.id,
@@ -531,9 +575,11 @@ const Account: React.FC = () => {
       status: profile?.paymentGateways.includes(gateway.id) ? 'active' : 'available',
       features: gateway.features,
       color: gateway.color,
-      // Use actual fee and payout from API if available, otherwise fallback to static values
+      // Use actual settings from API if available, otherwise fallback to static values
       fee: gatewaySettings ? `${gatewaySettings.commission}%` : gateway.fee,
-      payout: gatewaySettings ? `T+${gatewaySettings.payoutDelay}` : gateway.payout
+      payout: gatewaySettings ? `${gatewaySettings.payoutDelay}d` : gateway.payout,
+      minAmount: gatewaySettings?.minAmount,
+      maxAmount: gatewaySettings?.maxAmount
     };
   });
 
@@ -657,7 +703,7 @@ const Account: React.FC = () => {
               <div>
                 <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {statistics.totalRevenue.toLocaleString()} USDT
+                  {statistics.totalAmount.toLocaleString()} USDT
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Last {selectedPeriod}</p>
               </div>
@@ -922,14 +968,71 @@ const Account: React.FC = () => {
                     ))}
                   </div>
                   
-                  <div className="flex items-center justify-between text-xs">
-                    <span className={`${isActive ? 'text-primary' : 'text-gray-600'}`}>
-                      Fee: {gateway.fee}
-                    </span>
-                    <span className={`${isActive ? 'text-primary' : 'text-gray-600'}`}>
-                      Payout: {gateway.payout}
-                    </span>
+                  {/* Stats Cards - Beautiful redesign */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {/* Fee Card */}
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
+                      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 border border-blue-200/50 p-4 group"
+                    >
+                      <div className="absolute top-1 right-1 w-8 h-8 bg-blue-400/20 rounded-full blur-sm"></div>
+                      <div className="relative z-10">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-blue-900">{gateway.fee}</div>
+                          <div className="text-xs text-blue-700 font-medium">Fee</div>
+                        </div>
+                      </div>
+                    </motion.div>
+
+                    {/* Payout Card */}
+                    <motion.div 
+                      whileHover={{ scale: 1.05 }}
+                      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-50 via-purple-100 to-violet-100 border border-purple-200/50 p-4 group"
+                    >
+                      <div className="absolute top-1 right-1 w-8 h-8 bg-purple-400/20 rounded-full blur-sm"></div>
+                      <div className="relative z-10">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-purple-900">{gateway.payout}</div>
+                          <div className="text-xs text-purple-700 font-medium">Payout</div>
+                        </div>
+                      </div>
+                    </motion.div>
                   </div>
+                  
+                  {/* Min/Max amounts if available */}
+                  {(gateway.minAmount !== undefined || gateway.maxAmount !== undefined) && (
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {/* Min Amount Card */}
+                      <motion.div 
+                        whileHover={{ scale: 1.05 }}
+                        className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 via-emerald-50 to-teal-100 border border-green-200/50 p-4 group"
+                      >
+                        <div className="absolute top-1 right-1 w-6 h-6 bg-green-400/20 rounded-full blur-sm"></div>
+                        <div className="relative z-10">
+                          <div className="text-center">
+                            <div className="text-sm font-bold text-green-900">${gateway.minAmount || 0}</div>
+                            <div className="text-xs text-green-700 font-medium">Min</div>
+                          </div>
+                        </div>
+                      </motion.div>
+
+                      {/* Max Amount Card */}
+                      <motion.div 
+                        whileHover={{ scale: 1.05 }}
+                        className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-50 via-red-50 to-rose-100 border border-orange-200/50 p-4 group"
+                      >
+                        <div className="absolute top-1 right-1 w-6 h-6 bg-orange-400/20 rounded-full blur-sm"></div>
+                        <div className="relative z-10">
+                          <div className="text-center">
+                            <div className="text-sm font-bold text-orange-900">
+                              ${gateway.maxAmount || '∞'}
+                            </div>
+                            <div className="text-xs text-orange-700 font-medium">Max</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className={`text-xs font-medium ${

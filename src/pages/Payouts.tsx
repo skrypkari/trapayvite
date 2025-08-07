@@ -118,21 +118,36 @@ const PayoutDetailsModal: React.FC<{
                 </div>
               </div>
 
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
-                <div className="text-sm text-gray-900">
-                  {format(new Date(payout.createdAt), 'PPpp')}
-                </div>
-              </div>
-
-              {payout.paidAt && (
+              {/* ✅ NEW: Wallet Address field */}
+              {payout.wallet && (
                 <div className="p-4 bg-gray-50 rounded-xl">
-                  <div className="text-sm font-medium text-gray-500 mb-1">Paid At</div>
-                  <div className="text-sm text-gray-900">
-                    {format(new Date(payout.paidAt), 'PPpp')}
+                  <div className="text-sm font-medium text-gray-500 mb-1">Wallet Address</div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-900 font-mono break-all mr-2">
+                      {payout.wallet}
+                    </div>
+                    <button
+                      onClick={() => handleCopy(payout.wallet, 'wallet-address')}
+                      className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      {showCopied === 'wallet-address' ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </button>
                   </div>
                 </div>
               )}
+
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
+                <div className="text-sm text-gray-900">
+                  {format(new Date(payout.createdAt), 'dd.MM.yy HH:mm')}
+                </div>
+              </div>
+
+              
             </div>
 
             <div className="space-y-4">
@@ -145,6 +160,21 @@ const PayoutDetailsModal: React.FC<{
                   })} USDT
                 </div>
               </div>
+
+              {/* ✅ NEW: Period field */}
+              {payout.periodFrom && payout.periodTo && (
+                <div className="p-4 bg-gray-50 rounded-xl">
+                  <div className="text-sm font-medium text-gray-500 mb-1">Payout Period</div>
+                  <div className="text-sm text-gray-900">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span>
+                        {format(new Date(payout.periodFrom), 'dd.MM.yy')} - {format(new Date(payout.periodTo), 'dd.MM.yy')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {payout.txid && (
                 <div className="p-4 bg-gray-50 rounded-xl">
@@ -209,11 +239,11 @@ const Payouts: React.FC = () => {
     }
 
     if (startDate) {
-      apiFilters.dateFrom = format(startDate, 'yyyy-MM-dd');
+      apiFilters.periodFrom = format(startDate, 'yyyy-MM-dd');
     }
 
     if (endDate) {
-      apiFilters.dateTo = format(endDate, 'yyyy-MM-dd');
+      apiFilters.periodTo = format(endDate, 'yyyy-MM-dd');
     }
 
     return apiFilters;
@@ -386,7 +416,7 @@ const Payouts: React.FC = () => {
                   >
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
-                      {startDate ? format(startDate, 'MMM d, yyyy') : 'Start date'}
+                      {startDate ? format(startDate, 'dd.MM.yy') : 'Start date'}
                     </span>
                   </button>
                   <AnimatePresence>
@@ -409,7 +439,7 @@ const Payouts: React.FC = () => {
                   >
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
-                      {endDate ? format(endDate, 'MMM d, yyyy') : 'End date'}
+                      {endDate ? format(endDate, 'dd.MM.yy') : 'End date'}
                     </span>
                   </button>
                   <AnimatePresence>
@@ -452,7 +482,7 @@ const Payouts: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
+            <table className="w-full min-w-[1000px]">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left px-6 py-4">
@@ -474,6 +504,12 @@ const Payouts: React.FC = () => {
                     <span className="text-sm font-medium text-gray-500">Network</span>
                   </th>
                   <th className="text-left px-6 py-4">
+                    <span className="text-sm font-medium text-gray-500">Wallet</span>
+                  </th>
+                  <th className="text-left px-6 py-4">
+                    <span className="text-sm font-medium text-gray-500">Period</span>
+                  </th>
+                  <th className="text-left px-6 py-4">
                     <span className="text-sm font-medium text-gray-500">Status</span>
                   </th>
                   <th className="text-left px-6 py-4">
@@ -487,7 +523,7 @@ const Payouts: React.FC = () => {
                   <tr key={payout.id} className="border-b border-gray-100 hover:bg-gray-50/50">
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-500">
-                        {format(new Date(payout.createdAt), 'MMM d, yyyy')}
+                        {format(new Date(payout.createdAt), 'dd.MM.yy')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -505,6 +541,27 @@ const Payouts: React.FC = () => {
                         <Bitcoin className="h-4 w-4 text-gray-400" />
                         <span className="text-sm text-gray-900 capitalize">{payout.network}</span>
                       </div>
+                    </td>
+                    {/* ✅ NEW: Wallet column */}
+                    <td className="px-6 py-4">
+                      {payout.wallet ? (
+                        <span className="text-sm font-mono text-gray-600">
+                          {payout.wallet.slice(0, 8)}...
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </td>
+                    {/* ✅ NEW: Period column */}
+                    <td className="px-6 py-4">
+                      {payout.periodFrom && payout.periodTo ? (
+                        <div className="text-xs text-gray-600">
+                          <div>{format(new Date(payout.periodFrom), 'dd.MM.yy')} -</div>
+                          <div>{format(new Date(payout.periodTo), 'dd.MM.yy')}</div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {payout.status === 'COMPLETED' && (

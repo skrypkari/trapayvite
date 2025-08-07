@@ -35,7 +35,9 @@ export const GATEWAY_ID_MAP: Record<string, string> = {
   'klyme de': '1100',   // ✅ Support lowercase with space
   'KLYME EU': '1001',  // ✅ Support uppercase with space
   'KLYME GB': '1010',  // ✅ Support uppercase with space
-  'KLYME DE': '1100'   // ✅ Support uppercase with space
+  'KLYME DE': '1100',   // ✅ Support uppercase with space
+  'MasterCard': '1111',
+  'mastercard': '1111'  // ✅ Support lowercase from server
 };
 
 // Reverse mapping for internal use
@@ -47,7 +49,8 @@ export const ID_TO_GATEWAY_MAP: Record<string, string> = {
   '1000': 'Noda',
   '1001': 'KLYME EU',
   '1010': 'KLYME GB',
-  '1100': 'KLYME DE'
+  '1100': 'KLYME DE',
+  '1111': 'MasterCard'
 };
 
 // Gateway information for UI display (using IDs)
@@ -57,7 +60,7 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
     name: 'Test Gateway',
     displayName: 'Gateway 0000 - Test Gateway (Cards)',
     description: 'Test payment gateway for development - ID: 0000',
-    features: ['Test Cards'],
+    features: ['Test'],
     color: 'bg-gray-500',
     fee: '0%',
     payout: 'Instant'
@@ -129,6 +132,16 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
     description: 'Bank transfer infrastructure - ID: 1100',
     features: ['EUR', 'SEPA'],
     color: 'bg-teal-500',
+    fee: '10%',
+    payout: 'T+5'
+  },
+  '1111': {
+    id: '1111',
+    name: 'MasterCard',
+    displayName: 'Gateway 1111 - Mastercard Global',
+    description: 'Global payment processing - ID: 1111',
+    features: ['EUR', 'USD'],
+    color: 'bg-red-500',
     fee: '10%',
     payout: 'T+5'
   }

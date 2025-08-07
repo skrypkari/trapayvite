@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
   Search,
-  Filter,
-  ArrowUpDown,
   Eye,
   CheckCircle2,
   XCircle,
@@ -15,22 +13,22 @@ import {
   Globe,
   Mail,
   Settings,
-  MoreHorizontal,
   Edit3,
   Trash2,
   Shield,
   Activity,
   DollarSign,
   Percent,
-  Timer,
   Wallet,
   Copy,
   Check,
   X,
   BarChart3,
   TrendingUp,
-  ArrowUpRight,
-  ArrowDownLeft
+  ArrowDownLeft,
+  CreditCard,
+  AlertCircle,
+  Save
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -39,11 +37,10 @@ import Chart from 'react-apexcharts';
 import CustomSelect from '../components/CustomSelect';
 import DatePicker from '../components/DatePicker';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { 
-  useGetUsers, 
-  useUser, 
-  useCreateUser, 
-  useUpdateUser, 
+import {
+  useGetUsers,
+  useCreateUser,
+  useUpdateUser,
   useDeleteUser,
   useSuspendUser,
   useActivateUser,
@@ -51,14 +48,13 @@ import {
   type UserFilters,
   type AddUserFormData,
   type EditUserFormData,
-  type GatewaySettings,
   validateUserData
 } from '../hooks/useUsers';
-import { 
+import {
   useAdmin,
-  type MerchantStatisticsFilters 
+  type MerchantStatisticsFilters
 } from '../hooks/useAdmin';
-import { getGatewayInfo, GATEWAY_INFO, convertGatewayIdsToNames } from '../utils/gatewayMapping';
+import { getGatewayInfo, GATEWAY_INFO } from '../utils/gatewayMapping';
 
 const MerchantAnalyticsModal: React.FC<{
   user: User;
@@ -101,7 +97,7 @@ const MerchantAnalyticsModal: React.FC<{
   // Chart configuration for revenue analytics
   const chartOptions = {
     chart: {
-      type: 'area',
+      type: 'area' as const,
       toolbar: {
         show: false
       },
@@ -111,7 +107,7 @@ const MerchantAnalyticsModal: React.FC<{
     },
     colors: ['#6936d3', '#10b981', '#f59e0b'],
     stroke: {
-      curve: 'smooth',
+      curve: 'smooth' as const,
       width: 2
     },
     fill: {
@@ -124,8 +120,8 @@ const MerchantAnalyticsModal: React.FC<{
       }
     },
     xaxis: {
-      categories: statistics?.dailyData?.map(item => 
-        format(new Date(item.date), 'MMM d')
+      categories: statistics?.dailyData?.map(item =>
+        format(new Date(item.date), 'dd.MM')
       ) || [],
       axisBorder: {
         show: false
@@ -154,8 +150,8 @@ const MerchantAnalyticsModal: React.FC<{
     },
     legend: {
       show: true,
-      position: 'top',
-      horizontalAlign: 'right'
+      position: 'top' as const,
+      horizontalAlign: 'right' as const
     },
     responsive: [{
       breakpoint: 480,
@@ -224,7 +220,7 @@ const MerchantAnalyticsModal: React.FC<{
                       >
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
-                          {startDate ? format(startDate, 'MMM d, yyyy') : 'Start date'}
+                          {startDate ? format(startDate, 'dd.MM.yy') : 'Start date'}
                         </span>
                       </button>
                       <AnimatePresence>
@@ -240,9 +236,9 @@ const MerchantAnalyticsModal: React.FC<{
                         )}
                       </AnimatePresence>
                     </div>
-                    
+
                     <span className="text-gray-400">to</span>
-                    
+
                     <div className="relative">
                       <button
                         onClick={() => setIsEndDatePickerOpen(true)}
@@ -250,7 +246,7 @@ const MerchantAnalyticsModal: React.FC<{
                       >
                         <Calendar className="h-4 w-4 text-gray-400" />
                         <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
-                          {endDate ? format(endDate, 'MMM d, yyyy') : 'End date'}
+                          {endDate ? format(endDate, 'dd.MM.yy') : 'End date'}
                         </span>
                       </button>
                       <AnimatePresence>
@@ -276,7 +272,7 @@ const MerchantAnalyticsModal: React.FC<{
                   className="w-[180px]"
                 />
               </div>
-              
+
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
@@ -415,7 +411,7 @@ const MerchantAnalyticsModal: React.FC<{
                           <p className="text-sm text-gray-500">{gateway.paymentsCount} payments</p>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-3 gap-3 text-sm">
                         <div className="text-center p-3 bg-blue-50 rounded-lg">
                           <div className="text-lg font-bold text-blue-900">
@@ -423,14 +419,14 @@ const MerchantAnalyticsModal: React.FC<{
                           </div>
                           <div className="text-xs text-blue-700">Turnover USDT</div>
                         </div>
-                        
+
                         <div className="text-center p-3 bg-green-50 rounded-lg">
                           <div className="text-lg font-bold text-green-900">
                             {gateway.merchantEarningsUSDT.toLocaleString()}
                           </div>
                           <div className="text-xs text-green-700">Earnings USDT</div>
                         </div>
-                        
+
                         <div className="text-center p-3 bg-orange-50 rounded-lg">
                           <div className="text-lg font-bold text-orange-900">
                             {gateway.averageCommissionRate}%
@@ -522,7 +518,7 @@ const MerchantAnalyticsModal: React.FC<{
                     <div className="flex items-center space-x-4">
                       <span className="text-gray-500">Period:</span>
                       <span className="font-medium text-gray-900">
-                        {format(new Date(statistics.periodInfo.from), 'MMM d, yyyy')} - {format(new Date(statistics.periodInfo.to), 'MMM d, yyyy')}
+                        {format(new Date(statistics.periodInfo.from), 'dd.MM.yy')} - {format(new Date(statistics.periodInfo.to), 'dd.MM.yy')}
                       </span>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -587,240 +583,348 @@ const UserDetailsModal: React.FC<{
     onClose();
   };
 
+  // Helper function to render field with enhanced styling
+  const renderField = (label: string, value: any, copyable = false, copyId?: string, icon?: React.ReactNode, className?: string) => {
+    if (value === null || value === undefined || value === '') return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`group relative p-5 bg-gradient-to-br from-white via-gray-50 to-white rounded-2xl border border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all duration-300 ${className || ''}`}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="relative z-10">
+          <div className="flex items-center space-x-3 mb-3">
+            {icon && (
+              <div className="p-2 bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl text-primary group-hover:scale-110 transition-transform duration-200">
+                {icon}
+              </div>
+            )}
+            <div className="text-sm font-semibold text-gray-700 group-hover:text-gray-900 transition-colors duration-200">
+              {label}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-base text-gray-900 break-all mr-3 font-medium">
+              {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value}
+            </div>
+            {copyable && copyId && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleCopy(value.toString(), copyId)}
+                className="p-2.5 text-gray-400 hover:text-primary hover:bg-white rounded-xl transition-all duration-200 flex-shrink-0 shadow-sm border border-gray-200 hover:border-primary/30"
+              >
+                {showCopied === copyId ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </motion.button>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      ACTIVE: {
+        icon: <CheckCircle2 className="h-5 w-5" />,
+        bg: 'from-green-500 to-emerald-600',
+        text: 'Active User'
+      },
+      SUSPENDED: {
+        icon: <XCircle className="h-5 w-5" />,
+        bg: 'from-red-500 to-rose-600',
+        text: 'Suspended'
+      },
+      PENDING: {
+        icon: <Clock className="h-5 w-5" />,
+        bg: 'from-yellow-500 to-orange-500',
+        text: 'Pending Approval'
+      }
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING;
+
+    return (
+      <div className={`inline-flex items-center px-4 py-2 bg-gradient-to-r ${config.bg} text-white rounded-xl shadow-lg`}>
+        {config.icon}
+        <span className="ml-2 font-semibold">{config.text}</span>
+      </div>
+    );
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ type: "spring", duration: 0.5 }}
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-primary/10 rounded-xl">
-                <UserIcon className="h-5 w-5 text-primary" />
+        {/* Enhanced Header */}
+        <div className="relative px-8 py-6 bg-gradient-to-r from-primary via-primary-dark to-purple-700 text-white">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30"
+                >
+                  <UserIcon className="h-8 w-8 text-white" />
+                </motion.div>
+                <div>
+                  <motion.h3
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-2xl font-bold text-white"
+                  >
+                    {user.name}
+                  </motion.h3>
+                  <motion.p
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-white/80 font-mono text-sm"
+                  >
+                    @{user.username}
+                  </motion.p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{user.name}</h3>
-                <p className="text-sm text-gray-500">@{user.username}</p>
+              <div className="flex items-center space-x-3">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAction('edit')}
+                  className="p-3 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm"
+                >
+                  <Edit3 className="h-5 w-5" />
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onClose}
+                  className="p-3 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm"
+                >
+                  <X className="h-6 w-6" />
+                </motion.button>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Basic Information */}
-          <div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Brand Name</div>
-                <div className="text-sm text-gray-900">{user.name}</div>
-              </div>
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+          <div className="p-8 space-y-8">
+            {/* Status Banner */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-center"
+            >
+              {getStatusBadge(user.status)}
+            </motion.div>
 
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Username</div>
-                <div className="text-sm text-gray-900">@{user.username}</div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Telegram</div>
-                <div className="text-sm text-gray-900">{user.telegram || 'Not set'}</div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Status</div>
-                <div className="mt-1">
-                  {user.status === 'ACTIVE' && (
-                    <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span className="text-sm font-medium">Active</span>
-                    </div>
-                  )}
-                  {user.status === 'SUSPENDED' && (
-                    <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg w-fit">
-                      <XCircle className="h-4 w-4" />
-                      <span className="text-sm font-medium">Suspended</span>
-                    </div>
-                  )}
-                  {user.status === 'PENDING' && (
-                    <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg w-fit">
-                      <Clock className="h-4 w-4" />
-                      <span className="text-sm font-medium">Pending</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Merchant URL</div>
-                <div className="text-sm text-gray-900 break-all">{user.shopUrl}</div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Created At</div>
-                <div className="text-sm text-gray-900">
-                  {format(new Date(user.createdAt), 'PPpp')}
-                </div>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <div className="text-sm font-medium text-gray-500 mb-1">Public Key</div>
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-900 font-mono break-all mr-2">
-                    {user.publicKey.slice(0, 20)}...
-                  </div>
-                  <button
-                    onClick={() => handleCopy(user.publicKey, 'public-key')}
-                    className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-                  >
-                    {showCopied === 'public-key' ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
+            {/* Basic Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {renderField('Brand Name', user.name, false, '', <Building2 className="h-5 w-5" />, 'border-2 border-primary/20')}
+              {renderField('Username', `@${user.username}`, false, '', <UserIcon className="h-5 w-5" />)}
+              {renderField('Telegram', user.telegram || 'Not set', false, '', <Mail className="h-5 w-5" />)}
+              {renderField('Merchant URL', user.shopUrl, true, 'shop-url', <Globe className="h-5 w-5" />)}
+              {renderField('Created At', format(new Date(user.createdAt), 'dd.MM.yy HH:mm'), false, '', <Calendar className="h-5 w-5" />)}
+              {renderField('Public Key', `${user.publicKey.slice(0, 20)}...`, true, 'public-key', <Shield className="h-5 w-5" />)}
             </div>
-          </div>
 
-          {/* Payment Gateways */}
-          <div>
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">Payment Gateways</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {user.paymentGateways.map((gatewayId) => {
-                const gatewayInfo = getGatewayInfo(gatewayId);
-                const settings = user.gatewaySettings?.[gatewayId];
-                
-                return (
-                  <div key={gatewayId} className="p-4 border border-gray-200 rounded-xl">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h5 className="font-medium text-gray-900">
-                          {gatewayInfo ? gatewayInfo.name : `Gateway ${gatewayId}`}
-                        </h5>
-                        <p className="text-sm text-gray-500">
-                          {gatewayInfo ? gatewayInfo.description : 'Payment gateway'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {settings && (
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="text-center p-3 bg-blue-50 rounded-lg">
-                          <div className="flex items-center justify-center mb-1">
-                            <Percent className="h-4 w-4 text-blue-600" />
-                          </div>
-                          <div className="text-lg font-bold text-blue-900">{settings.commission}%</div>
-                          <div className="text-xs text-blue-700">Commission</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+            {/* Payment Gateways Section */}
+            <div className="space-y-4">
+              <h4 className="text-xl font-bold text-gray-900 flex items-center">
+                <Wallet className="h-6 w-6 mr-3 text-primary" />
+                Payment Gateways
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {user.paymentGateways.map((gatewayId) => {
+                  const gatewayInfo = getGatewayInfo(gatewayId);
+                  const settings = user.gatewaySettings?.[gatewayId];
 
-          {/* Wallet Information */}
-          {user.wallets && Object.keys(user.wallets).length > 0 && (
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Crypto Wallets</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(user.wallets).map(([walletType, address]) => {
-                  if (!address) return null;
-                  
-                  const walletLabels: Record<string, { label: string; icon: string }> = {
-                    usdtPolygonWallet: { label: 'USDT (Polygon)', icon: '🔷' },
-                    usdtTrcWallet: { label: 'USDT (TRC-20)', icon: '🔴' },
-                    usdtErcWallet: { label: 'USDT (ERC-20)', icon: '⚫' },
-                    usdcPolygonWallet: { label: 'USDC (Polygon)', icon: '🔵' }
-                  };
-                  
-                  const walletInfo = walletLabels[walletType];
-                  if (!walletInfo) return null;
-                  
                   return (
-                    <div key={walletType} className="p-4 bg-gray-50 rounded-xl">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-lg">{walletInfo.icon}</span>
-                          <span className="font-medium text-gray-900">{walletInfo.label}</span>
+                    <motion.div
+                      key={gatewayId}
+                      whileHover={{ scale: 1.02 }}
+                      className="p-6 border-2 border-gray-200 rounded-2xl bg-gradient-to-br from-white to-gray-50 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h5 className="text-lg font-bold text-gray-900">
+                            {gatewayInfo ? gatewayInfo.name : `Gateway ${gatewayId}`}
+                          </h5>
+                          <p className="text-sm text-gray-600">
+                            {gatewayInfo ? gatewayInfo.description : 'Payment gateway'}
+                          </p>
                         </div>
-                        <button
-                          onClick={() => handleCopy(address, walletType)}
-                          className="p-1.5 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                          {showCopied === walletType ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </button>
+                        <div className="p-3 bg-primary/10 rounded-xl">
+                          <Wallet className="h-6 w-6 text-primary" />
+                        </div>
                       </div>
-                      <div className="text-sm font-mono text-gray-600 break-all">
-                        {address}
-                      </div>
-                    </div>
+
+                      {settings && (
+                        <div className="bg-white rounded-xl p-4 border border-gray-200">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-primary">{settings.commission}%</div>
+                              <div className="text-sm text-gray-600">Commission</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-blue-600">{settings.payoutDelay || 0}d</div>
+                              <div className="text-sm text-gray-600">Payout Delay</div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200">
+                            <div className="text-center">
+                              <div className="text-lg font-semibold text-gray-900">${settings.minAmount || 0}</div>
+                              <div className="text-xs text-gray-500">Min Amount</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-semibold text-gray-900">${settings.maxAmount || 0}</div>
+                              <div className="text-xs text-gray-500">Max Amount</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
                   );
                 })}
               </div>
             </div>
-          )}
 
-          {/* Actions */}
-          <div className="border-t border-gray-200 pt-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">Actions</h4>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => handleAction('edit')}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center space-x-2"
-              >
-                <Edit3 className="h-4 w-4" />
-                <span>Edit User</span>
-              </button>
-              
-              {user.status === 'ACTIVE' ? (
-                <button
-                  onClick={() => handleAction('suspend')}
-                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center space-x-2"
+            {/* Crypto Wallets Section */}
+            {user.wallets && Object.keys(user.wallets).length > 0 && (
+              <div className="space-y-4">
+                <h4 className="text-xl font-bold text-gray-900 flex items-center">
+                  <Wallet className="h-6 w-6 mr-3 text-primary" />
+                  Crypto Wallets
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(user.wallets).map(([walletType, address]) => {
+                    if (!address) return null;
+
+                    const walletLabels: Record<string, { label: string; icon: string; gradient: string }> = {
+                      usdtPolygonWallet: { label: 'USDT (Polygon)', icon: '🔷', gradient: 'from-blue-500 to-indigo-600' },
+                      usdtTrcWallet: { label: 'USDT (TRC-20)', icon: '🔴', gradient: 'from-red-500 to-rose-600' },
+                      usdtErcWallet: { label: 'USDT (ERC-20)', icon: '⚫', gradient: 'from-gray-700 to-gray-900' },
+                      usdcPolygonWallet: { label: 'USDC (Polygon)', icon: '🔵', gradient: 'from-blue-600 to-cyan-600' }
+                    };
+
+                    const walletInfo = walletLabels[walletType];
+                    if (!walletInfo) return null;
+
+                    return (
+                      <motion.div
+                        key={walletType}
+                        whileHover={{ scale: 1.02 }}
+                        className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-200 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div className={`p-3 bg-gradient-to-r ${walletInfo.gradient} rounded-xl text-white`}>
+                              <span className="text-xl">{walletInfo.icon}</span>
+                            </div>
+                            <div>
+                              <h5 className="font-bold text-gray-900">{walletInfo.label}</h5>
+                              <p className="text-sm text-gray-600">Cryptocurrency Wallet</p>
+                            </div>
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleCopy(address, walletType)}
+                            className="p-3 text-gray-400 hover:text-primary hover:bg-white rounded-xl transition-all duration-200 shadow-sm border border-gray-200 hover:border-primary/30"
+                          >
+                            {showCopied === walletType ? (
+                              <Check className="h-5 w-5 text-green-500" />
+                            ) : (
+                              <Copy className="h-5 w-5" />
+                            )}
+                          </motion.button>
+                        </div>
+                        <div className="bg-white rounded-xl p-4 border border-gray-200">
+                          <div className="text-sm font-mono text-gray-600 break-all">
+                            {address}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="border-t-2 border-gray-200 pt-8">
+              <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <Settings className="h-6 w-6 mr-3 text-primary" />
+                Actions
+              </h4>
+              <div className="flex flex-wrap gap-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAction('edit')}
+                  className="px-6 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-3 font-semibold"
                 >
-                  <Shield className="h-4 w-4" />
-                  <span>Suspend</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleAction('activate')}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+                  <Edit3 className="h-5 w-5" />
+                  <span>Edit User</span>
+                </motion.button>
+
+                {user.status === 'ACTIVE' ? (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAction('suspend')}
+                    className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-3 font-semibold"
+                  >
+                    <Shield className="h-5 w-5" />
+                    <span>Suspend</span>
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAction('activate')}
+                    className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-3 font-semibold"
+                  >
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span>Activate</span>
+                  </motion.button>
+                )}
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAction('delete')}
+                  className="px-6 py-3 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-3 font-semibold"
                 >
-                  <CheckCircle2 className="h-4 w-4" />
-                  <span>Activate</span>
-                </button>
-              )}
-              
-              <button
-                onClick={() => handleAction('delete')}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete</span>
-              </button>
+                  <Trash2 className="h-5 w-5" />
+                  <span>Delete</span>
+                </motion.button>
+              </div>
             </div>
           </div>
         </div>
@@ -855,13 +959,20 @@ const AddUserModal: React.FC<{
 
   const availableGateways = Object.values(GATEWAY_INFO);
 
+  const walletTypes = [
+    { key: 'usdtPolygonWallet', label: 'USDT (Polygon)', icon: '🔷', color: 'blue' },
+    { key: 'usdtTrcWallet', label: 'USDT (TRC-20)', icon: '🔴', color: 'red' },
+    { key: 'usdtErcWallet', label: 'USDT (ERC-20)', icon: '⚫', color: 'gray' },
+    { key: 'usdcPolygonWallet', label: 'USDC (Polygon)', icon: '🔵', color: 'cyan' }
+  ];
+
   const handleGatewayToggle = (gatewayId: string) => {
     setFormData(prev => {
       const isSelected = prev.gateways.includes(gatewayId);
-      const newGateways = isSelected 
+      const newGateways = isSelected
         ? prev.gateways.filter(id => id !== gatewayId)
         : [...prev.gateways, gatewayId];
-      
+
       // Update gateway settings
       const newGatewaySettings = { ...prev.gatewaySettings };
       if (isSelected) {
@@ -869,9 +980,12 @@ const AddUserModal: React.FC<{
       } else {
         newGatewaySettings[gatewayId] = {
           commission: 2.5,
+          minAmount: 0,
+          maxAmount: 100000,
+          payoutDelay: 0
         };
       }
-      
+
       return {
         ...prev,
         gateways: newGateways,
@@ -880,22 +994,9 @@ const AddUserModal: React.FC<{
     });
   };
 
-  const handleGatewaySettingChange = (gatewayId: string, field: 'commission', value: number) => {
-    setFormData(prev => ({
-      ...prev,
-      gatewaySettings: {
-        ...prev.gatewaySettings,
-        [gatewayId]: {
-          ...prev.gatewaySettings[gatewayId],
-          [field]: value
-        }
-      }
-    }));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     const validationErrors = validateUserData({
       name: formData.brandName,
@@ -908,7 +1009,7 @@ const AddUserModal: React.FC<{
       gatewaySettings: formData.gatewaySettings,
       wallets: formData.wallets
     });
-    
+
     if (validationErrors.length > 0) {
       const errorMap: Record<string, string> = {};
       validationErrors.forEach(error => {
@@ -917,7 +1018,7 @@ const AddUserModal: React.FC<{
       setErrors(errorMap);
       return;
     }
-    
+
     setErrors({});
     onSubmit(formData);
   };
@@ -942,6 +1043,32 @@ const AddUserModal: React.FC<{
     onClose();
   };
 
+  const renderField = (label: string, icon: React.ReactNode, children: React.ReactNode, error?: string) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-3"
+    >
+      <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700">
+        <div className="p-2 bg-primary/10 rounded-xl text-primary">
+          {icon}
+        </div>
+        <span>{label}</span>
+      </label>
+      {children}
+      {error && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-sm text-red-600 flex items-center space-x-2"
+        >
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </motion.p>
+      )}
+    </motion.div>
+  );
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -949,245 +1076,969 @@ const AddUserModal: React.FC<{
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) handleClose();
           }}
         >
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            transition={{ type: "spring", duration: 0.5 }}
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden"
           >
-            <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">Add New User</h3>
-                <button
-                  onClick={handleClose}
-                  className="text-gray-400 hover:text-gray-500 p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+            {/* Enhanced Header */}
+            <div className="relative px-8 py-6 bg-gradient-to-r from-primary via-primary-dark to-purple-700 text-white">
+              <div className="absolute inset-0 bg-black/10"></div>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30"
+                    >
+                      <Plus className="h-8 w-8 text-white" />
+                    </motion.div>
+                    <div>
+                      <motion.h3
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="text-2xl font-bold text-white"
+                      >
+                        Add New User
+                      </motion.h3>
+                      <motion.p
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-white/80"
+                      >
+                        Create a new merchant account
+                      </motion.p>
+                    </div>
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleClose}
+                    className="p-3 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm"
+                  >
+                    <X className="h-6 w-6" />
+                  </motion.button>
+                </div>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-gray-900">Basic Information</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Brand Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.brandName}
-                      onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.name ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
-                      placeholder="Enter brand name"
-                    />
-                    {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+            {/* Scrollable Form Content */}
+            <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+              <form onSubmit={handleSubmit} className="p-8 space-y-8">
+                {/* Basic Information Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="space-y-6"
+                >
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-3 bg-primary/10 rounded-xl">
+                      <UserIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900">Basic Information</h4>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Username *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.username ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
-                      placeholder="Enter username"
-                    />
-                    {errors.username && <p className="mt-1 text-sm text-red-600">{errors.username}</p>}
-                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderField(
+                      'Brand Name *',
+                      <Building2 className="h-5 w-5" />,
+                      <input
+                        type="text"
+                        value={formData.brandName}
+                        onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
+                        className={`w-full px-4 py-3 border-2 ${errors.name ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                        placeholder="Enter brand name"
+                      />,
+                      errors.name
+                    )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Password *
-                    </label>
-                    <input
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.password ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
-                      placeholder="Enter password"
-                    />
-                    {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-                  </div>
+                    {renderField(
+                      'Username *',
+                      <UserIcon className="h-5 w-5" />,
+                      <input
+                        type="text"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        className={`w-full px-4 py-3 border-2 ${errors.username ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                        placeholder="Enter username"
+                      />,
+                      errors.username
+                    )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telegram ID
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.telegramId}
-                      onChange={(e) => setFormData({ ...formData, telegramId: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                      placeholder="@username"
-                    />
-                  </div>
+                    {renderField(
+                      'Password *',
+                      <Shield className="h-5 w-5" />,
+                      <input
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        className={`w-full px-4 py-3 border-2 ${errors.password ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                        placeholder="Enter password"
+                      />,
+                      errors.password
+                    )}
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Merchant URL *
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.merchantUrl}
-                      onChange={(e) => setFormData({ ...formData, merchantUrl: e.target.value })}
-                      className={`w-full px-4 py-2.5 rounded-lg border ${errors.merchantUrl ? 'border-red-300' : 'border-gray-300'} focus:ring-2 focus:ring-primary focus:border-primary outline-none`}
-                      placeholder="https://example.com"
-                    />
-                    {errors.merchantUrl && <p className="mt-1 text-sm text-red-600">{errors.merchantUrl}</p>}
-                  </div>
-                </div>
-              </div>
+                    {renderField(
+                      'Telegram ID',
+                      <Mail className="h-5 w-5" />,
+                      <input
+                        type="text"
+                        value={formData.telegramId}
+                        onChange={(e) => setFormData({ ...formData, telegramId: e.target.value })}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300"
+                        placeholder="@username"
+                      />
+                    )}
 
-              {/* Payment Gateways */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-gray-900">Payment Gateways</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {availableGateways.map((gateway) => (
-                    <div key={gateway.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h5 className="font-medium text-gray-900">{gateway.displayName}</h5>
-                          <p className="text-sm text-gray-500">{gateway.description}</p>
-                        </div>
+                    <div className="md:col-span-2">
+                      {renderField(
+                        'Merchant URL *',
+                        <Globe className="h-5 w-5" />,
                         <input
-                          type="checkbox"
-                          checked={formData.gateways.includes(gateway.id)}
-                          onChange={() => handleGatewayToggle(gateway.id)}
-                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                        />
-                      </div>
-                      
-                      {formData.gateways.includes(gateway.id) && (
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Commission (%)
-                            </label>
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              value={formData.gatewaySettings[gateway.id]?.commission || 0}
-                              onChange={(e) => handleGatewaySettingChange(gateway.id, 'commission', parseFloat(e.target.value))}
-                              className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none"
-                            />
-                          </div>
-
-                        </div>
+                          type="url"
+                          value={formData.merchantUrl}
+                          onChange={(e) => setFormData({ ...formData, merchantUrl: e.target.value })}
+                          className={`w-full px-4 py-3 border-2 ${errors.merchantUrl ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                          placeholder="https://example.com"
+                        />,
+                        errors.merchantUrl
                       )}
                     </div>
-                  ))}
-                </div>
-                {errors.paymentGateways && <p className="text-sm text-red-600">{errors.paymentGateways}</p>}
-              </div>
-
-              {/* Crypto Wallets */}
-              <div className="space-y-4">
-                <h4 className="text-lg font-semibold text-gray-900">Crypto Wallets (Optional)</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      🔷 USDT (Polygon)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.wallets?.usdtPolygonWallet || ''}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        wallets: { ...formData.wallets, usdtPolygonWallet: e.target.value }
-                      })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
-                      placeholder="0x1234567890abcdef..."
-                    />
                   </div>
+                </motion.div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      🔴 USDT (TRC-20)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.wallets?.usdtTrcWallet || ''}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        wallets: { ...formData.wallets, usdtTrcWallet: e.target.value }
-                      })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
-                      placeholder="TRX1234567890abcdef..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      ⚫ USDT (ERC-20)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.wallets?.usdtErcWallet || ''}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        wallets: { ...formData.wallets, usdtErcWallet: e.target.value }
-                      })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
-                      placeholder="0xabcdef1234567890..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      🔵 USDC (Polygon)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.wallets?.usdcPolygonWallet || ''}
-                      onChange={(e) => setFormData({ 
-                        ...formData, 
-                        wallets: { ...formData.wallets, usdcPolygonWallet: e.target.value }
-                      })}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary outline-none font-mono text-sm"
-                      placeholder="0xfedcba0987654321..."
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800"
-                  disabled={isLoading}
+                {/* Payment Gateways Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="space-y-6"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-3 bg-primary/10 rounded-xl">
+                      <CreditCard className="h-6 w-6 text-primary" />
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900">Payment Gateways</h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {availableGateways.map((gateway) => {
+                      const isEnabled = formData.gateways.includes(gateway.id);
+
+                      return (
+                        <motion.div
+                          key={gateway.id}
+                          whileHover={{ scale: 1.02 }}
+                          className={`p-6 border-2 rounded-2xl transition-all duration-300 ${isEnabled
+                              ? 'border-primary bg-gradient-to-br from-primary/5 to-primary/10'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div className={`p-3 rounded-xl ${isEnabled ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'}`}>
+                                <Wallet className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h5 className="font-bold text-gray-900">{gateway.displayName}</h5>
+                                <p className="text-sm text-gray-600">{gateway.description}</p>
+                              </div>
+                            </div>
+                            <motion.button
+                              type="button"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleGatewayToggle(gateway.id)}
+                              className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isEnabled ? 'bg-primary' : 'bg-gray-200'
+                                }`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEnabled ? 'translate-x-6' : 'translate-x-0'
+                                  }`}
+                              />
+                            </motion.button>
+                          </div>
+
+                          {isEnabled && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="space-y-4"
+                            >
+                              <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Commission Rate (%)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={formData.gatewaySettings[gateway.id]?.commission || 0}
+                                    onChange={(e) => {
+                                      const commission = parseFloat(e.target.value) || 0;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        gatewaySettings: {
+                                          ...prev.gatewaySettings,
+                                          [gateway.id]: {
+                                            ...prev.gatewaySettings[gateway.id],
+                                            commission,
+                                            minAmount: prev.gatewaySettings[gateway.id]?.minAmount || 0,
+                                            maxAmount: prev.gatewaySettings[gateway.id]?.maxAmount || 0,
+                                            payoutDelay: prev.gatewaySettings[gateway.id]?.payoutDelay || 0
+                                          }
+                                        }
+                                      }));
+                                    }}
+                                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                    placeholder="0"
+                                    min="0"
+                                    max="100"
+                                    step="0.01"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Min Amount (USDT)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={formData.gatewaySettings[gateway.id]?.minAmount || 0}
+                                      onChange={(e) => {
+                                        const minAmount = parseFloat(e.target.value) || 0;
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          gatewaySettings: {
+                                            ...prev.gatewaySettings,
+                                            [gateway.id]: {
+                                              ...prev.gatewaySettings[gateway.id],
+                                              commission: prev.gatewaySettings[gateway.id]?.commission || 0,
+                                              minAmount,
+                                              maxAmount: prev.gatewaySettings[gateway.id]?.maxAmount || 0,
+                                              payoutDelay: prev.gatewaySettings[gateway.id]?.payoutDelay || 0
+                                            }
+                                          }
+                                        }));
+                                      }}
+                                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                      placeholder="0"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Max Amount (USDT)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      value={formData.gatewaySettings[gateway.id]?.maxAmount || 0}
+                                      onChange={(e) => {
+                                        const maxAmount = parseFloat(e.target.value) || 0;
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          gatewaySettings: {
+                                            ...prev.gatewaySettings,
+                                            [gateway.id]: {
+                                              ...prev.gatewaySettings[gateway.id],
+                                              commission: prev.gatewaySettings[gateway.id]?.commission || 0,
+                                              minAmount: prev.gatewaySettings[gateway.id]?.minAmount || 0,
+                                              maxAmount,
+                                              payoutDelay: prev.gatewaySettings[gateway.id]?.payoutDelay || 0
+                                            }
+                                          }
+                                        }));
+                                      }}
+                                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                      placeholder="0"
+                                      min="0"
+                                      step="0.01"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <Clock className="h-4 w-4 inline-block mr-1" />
+                                    Payout Delay (days)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={formData.gatewaySettings[gateway.id]?.payoutDelay || 0}
+                                    onChange={(e) => {
+                                      const payoutDelay = parseFloat(e.target.value) || 0;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        gatewaySettings: {
+                                          ...prev.gatewaySettings,
+                                          [gateway.id]: {
+                                            ...prev.gatewaySettings[gateway.id],
+                                            commission: prev.gatewaySettings[gateway.id]?.commission || 0,
+                                            minAmount: prev.gatewaySettings[gateway.id]?.minAmount || 0,
+                                            maxAmount: prev.gatewaySettings[gateway.id]?.maxAmount || 0,
+                                            payoutDelay
+                                          }
+                                        }
+                                      }));
+                                    }}
+                                    className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                    placeholder="0"
+                                    min="0"
+                                    step="1"
+                                  />
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                  {errors.paymentGateways && <p className="text-sm text-red-600">{errors.paymentGateways}</p>}
+                </motion.div>
+
+                {/* Crypto Wallets Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="space-y-6"
                 >
-                  {isLoading && <LoadingSpinner size="sm" />}
-                  <span>{isLoading ? 'Creating...' : 'Create User'}</span>
-                </button>
-              </div>
-            </form>
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="p-3 bg-primary/10 rounded-xl">
+                      <Wallet className="h-6 w-6 text-primary" />
+                    </div>
+                    <h4 className="text-xl font-bold text-gray-900">Crypto Wallets (Optional)</h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {walletTypes.map((wallet) => (
+                      <motion.div
+                        key={wallet.key}
+                        whileHover={{ scale: 1.02 }}
+                        className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-200 hover:border-primary/30 transition-all duration-300"
+                      >
+                        <div className="flex items-center space-x-3 mb-4">
+                          <div className={`p-3 bg-gradient-to-r ${wallet.color === 'blue' ? 'from-blue-500 to-indigo-600' :
+                              wallet.color === 'red' ? 'from-red-500 to-rose-600' :
+                                wallet.color === 'gray' ? 'from-gray-700 to-gray-900' :
+                                  'from-blue-600 to-cyan-600'
+                            } rounded-xl text-white`}>
+                            <span className="text-xl">{wallet.icon}</span>
+                          </div>
+                          <div>
+                            <h5 className="font-bold text-gray-900">{wallet.label}</h5>
+                            <p className="text-sm text-gray-600">Wallet Address</p>
+                          </div>
+                        </div>
+                        <input
+                          type="text"
+                          value={formData.wallets?.[wallet.key as keyof typeof formData.wallets] || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            wallets: { ...formData.wallets, [wallet.key]: e.target.value }
+                          })}
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300 font-mono text-sm"
+                          placeholder="Enter wallet address"
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Action Buttons */}
+                <div className="border-t-2 border-gray-200 pt-8">
+                  <div className="flex justify-end space-x-4">
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleClose}
+                      disabled={isLoading}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all duration-200 flex items-center space-x-3 font-semibold disabled:opacity-50"
+                    >
+                      <X className="h-5 w-5" />
+                      <span>Cancel</span>
+                    </motion.button>
+
+                    <motion.button
+                      type="submit"
+                      disabled={isLoading}
+                      whileHover={!isLoading ? { scale: 1.05 } : {}}
+                      whileTap={!isLoading ? { scale: 0.95 } : {}}
+                      className="px-8 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <LoadingSpinner size="sm" />
+                          <span>Creating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-5 w-5" />
+                          <span>Create User</span>
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                </div>
+              </form>
+            </div>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+  );
+};
+
+const EditUserModal: React.FC<{
+  user: User;
+  onClose: () => void;
+  onSubmit: (data: EditUserFormData) => void;
+  isLoading: boolean;
+}> = ({ user, onClose, onSubmit, isLoading }) => {
+  const [formData, setFormData] = useState<EditUserFormData>({
+    name: user.name,
+    username: user.username,
+    telegram: user.telegram || '',
+    merchantUrl: user.shopUrl,
+    paymentGateways: user.paymentGateways,
+    status: user.status === 'PENDING' ? 'INACTIVE' : user.status,
+    gatewaySettings: user.gatewaySettings || {} as any,
+    wallets: {
+      usdtPolygonWallet: user.wallets?.usdtPolygonWallet || '',
+      usdtTrcWallet: user.wallets?.usdtTrcWallet || '',
+      usdtErcWallet: user.wallets?.usdtErcWallet || '',
+      usdcPolygonWallet: user.wallets?.usdcPolygonWallet || ''
+    }
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const availableGateways = Object.values(GATEWAY_INFO);
+
+  const walletTypes = [
+    { key: 'usdtPolygonWallet', label: 'USDT (Polygon)', icon: '🔷', color: 'blue' },
+    { key: 'usdtTrcWallet', label: 'USDT (TRC-20)', icon: '🔴', color: 'red' },
+    { key: 'usdtErcWallet', label: 'USDT (ERC-20)', icon: '⚫', color: 'gray' },
+    { key: 'usdcPolygonWallet', label: 'USDC (Polygon)', icon: '🔵', color: 'cyan' }
+  ];
+
+  const handleGatewayToggle = (gatewayId: string) => {
+    console.log('🔍 handleGatewayToggle called with gatewayId:', gatewayId);
+
+    setFormData(prev => {
+      console.log('🔍 Previous formData:', prev);
+
+      const isSelected = prev.paymentGateways.includes(gatewayId);
+      console.log('🔍 Gateway isSelected:', isSelected);
+
+      const newGateways = isSelected
+        ? prev.paymentGateways.filter((id: string) => id !== gatewayId)
+        : [...prev.paymentGateways, gatewayId];
+
+      console.log('🔍 New gateways array:', newGateways);
+
+      // Update gateway settings
+      const newGatewaySettings = { ...prev.gatewaySettings };
+      if (isSelected) {
+        delete newGatewaySettings[gatewayId];
+        console.log('🔍 Removed gateway settings for:', gatewayId);
+      } else {
+        newGatewaySettings[gatewayId] = {
+          commission: 2.5,
+          minAmount: 0,
+          maxAmount: 100000,
+          payoutDelay: 0
+        };
+        console.log('🔍 Added gateway settings for:', gatewayId);
+      }
+
+      const newFormData = {
+        ...prev,
+        paymentGateways: newGateways,
+        gatewaySettings: newGatewaySettings as any
+      };
+
+      console.log('🔍 New formData:', newFormData);
+
+      return newFormData;
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🔍 EditUserModal handleSubmit called');
+    console.log('🔍 Form data being submitted:', formData);
+    console.log('🔍 Payment gateways:', formData.paymentGateways);
+    console.log('🔍 Gateway settings:', formData.gatewaySettings);
+    setErrors({});
+    onSubmit(formData);
+  };
+
+  const handleClose = () => {
+    setErrors({});
+    onClose();
+  };
+
+  const renderField = (label: string, icon: React.ReactNode, children: React.ReactNode, error?: string) => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-3"
+    >
+      <label className="flex items-center space-x-3 text-sm font-semibold text-gray-700">
+        <div className="p-2 bg-primary/10 rounded-xl text-primary">
+          {icon}
+        </div>
+        <span>{label}</span>
+      </label>
+      {children}
+      {error && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-sm text-red-600 flex items-center space-x-2"
+        >
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </motion.p>
+      )}
+    </motion.div>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        transition={{ type: "spring", duration: 0.5 }}
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden"
+      >
+        {/* Enhanced Header */}
+        <div className="relative px-8 py-6 bg-gradient-to-r from-primary via-primary-dark to-purple-700 text-white">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30"
+                >
+                  <Edit3 className="h-8 w-8 text-white" />
+                </motion.div>
+                <div>
+                  <motion.h3
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-2xl font-bold text-white"
+                  >
+                    Edit User - {user.name}
+                  </motion.h3>
+                  <motion.p
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-white/80"
+                  >
+                    Modify user settings and configuration
+                  </motion.p>
+                </div>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleClose}
+                className="p-3 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition-all duration-200 backdrop-blur-sm"
+              >
+                <X className="h-6 w-6" />
+              </motion.button>
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable Form Content */}
+        <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+          <form onSubmit={handleSubmit} className="p-8 space-y-8">
+            {/* Basic Information Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <UserIcon className="h-6 w-6 text-primary" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900">Basic Information</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderField(
+                  'Brand Name *',
+                  <Building2 className="h-5 w-5" />,
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 ${errors.name ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                    placeholder="Enter brand name"
+                  />,
+                  errors.name
+                )}
+
+                {renderField(
+                  'Username *',
+                  <UserIcon className="h-5 w-5" />,
+                  <input
+                    type="text"
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 ${errors.username ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                    placeholder="Enter username"
+                  />,
+                  errors.username
+                )}
+
+                {renderField(
+                  'Telegram ID',
+                  <Mail className="h-5 w-5" />,
+                  <input
+                    type="text"
+                    value={formData.telegram}
+                    onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300"
+                    placeholder="@username"
+                  />
+                )}
+
+                <div className="md:col-span-2">
+                  {renderField(
+                    'Merchant URL *',
+                    <Globe className="h-5 w-5" />,
+                    <input
+                      type="url"
+                      value={formData.merchantUrl}
+                      onChange={(e) => setFormData({ ...formData, merchantUrl: e.target.value })}
+                      className={`w-full px-4 py-3 border-2 ${errors.merchantUrl ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                      placeholder="https://example.com"
+                    />,
+                    errors.merchantUrl
+                  )}
+                </div>
+
+                {renderField(
+                  'Status',
+                  <Shield className="h-5 w-5" />,
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300"
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="SUSPENDED">Suspended</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Payment Gateways Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <CreditCard className="h-6 w-6 text-primary" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900">Payment Gateways</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {availableGateways.map((gateway) => {
+                  const isEnabled = formData.paymentGateways.includes(gateway.id);
+
+                  return (
+                    <motion.div
+                      key={gateway.id}
+                      whileHover={{ scale: 1.02 }}
+                      className={`p-6 border-2 rounded-2xl transition-all duration-300 ${isEnabled
+                          ? 'border-primary bg-gradient-to-br from-primary/5 to-primary/10'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className={`p-3 rounded-xl ${isEnabled ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600'}`}>
+                            <Wallet className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <h5 className="font-bold text-gray-900">{gateway.displayName}</h5>
+                            <p className="text-sm text-gray-600">{gateway.description}</p>
+                          </div>
+                        </div>
+                        <motion.button
+                          type="button"
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleGatewayToggle(gateway.id)}
+                          className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isEnabled ? 'bg-primary' : 'bg-gray-200'
+                            }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEnabled ? 'translate-x-6' : 'translate-x-0'
+                              }`}
+                          />
+                        </motion.button>
+                      </div>
+
+                      {isEnabled && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          className="space-y-4"
+                        >
+                          <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-4">
+                            <div className='grid grid-cols-2 gap-3'>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Commission Rate (%)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={formData.gatewaySettings[gateway.id]?.commission || 0}
+                                  onChange={(e) => {
+                                    const commission = parseFloat(e.target.value) || 0;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      gatewaySettings: {
+                                        ...prev.gatewaySettings,
+                                        [gateway.id]: {
+                                          ...prev.gatewaySettings[gateway.id],
+                                          commission
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                  placeholder="0"
+                                  min="0"
+                                  max="100"
+                                  step="0.01"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  <Clock className="h-4 w-4 inline-block mr-1" />
+                                  Payout Delay (days)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={formData.gatewaySettings[gateway.id]?.payoutDelay || 0}
+                                  onChange={(e) => {
+                                    const payoutDelay = parseFloat(e.target.value) || 0;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      gatewaySettings: {
+                                        ...prev.gatewaySettings,
+                                        [gateway.id]: {
+                                          ...prev.gatewaySettings[gateway.id],
+                                          payoutDelay
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                  placeholder="0"
+                                  min="0"
+                                  step="1"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Min Amount (USDT)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={formData.gatewaySettings[gateway.id]?.minAmount || 0}
+                                  onChange={(e) => {
+                                    const minAmount = parseFloat(e.target.value) || 0;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      gatewaySettings: {
+                                        ...prev.gatewaySettings,
+                                        [gateway.id]: {
+                                          ...prev.gatewaySettings[gateway.id],
+                                          minAmount
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                  placeholder="0"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Max Amount (USDT)
+                                </label>
+                                <input
+                                  type="number"
+                                  value={formData.gatewaySettings[gateway.id]?.maxAmount || 0}
+                                  onChange={(e) => {
+                                    const maxAmount = parseFloat(e.target.value) || 0;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      gatewaySettings: {
+                                        ...prev.gatewaySettings,
+                                        [gateway.id]: {
+                                          ...prev.gatewaySettings[gateway.id],
+                                          maxAmount
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                  placeholder="0"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* Crypto Wallets Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-3 bg-primary/10 rounded-xl">
+                  <Wallet className="h-6 w-6 text-primary" />
+                </div>
+                <h4 className="text-xl font-bold text-gray-900">Crypto Wallets (Optional)</h4>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {walletTypes.map((wallet) => (
+                  <motion.div
+                    key={wallet.key}
+                    whileHover={{ scale: 1.02 }}
+                    className="p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl border-2 border-gray-200 hover:border-primary/30 transition-all duration-300"
+                  >
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className={`p-3 bg-gradient-to-r ${wallet.color === 'blue' ? 'from-blue-500 to-indigo-600' :
+                          wallet.color === 'red' ? 'from-red-500 to-rose-600' :
+                            wallet.color === 'gray' ? 'from-gray-700 to-gray-900' :
+                              'from-blue-600 to-cyan-600'
+                        } rounded-xl text-white`}>
+                        <span className="text-xl">{wallet.icon}</span>
+                      </div>
+                      <div>
+                        <h5 className="font-bold text-gray-900">{wallet.label}</h5>
+                        <p className="text-sm text-gray-600">Wallet Address</p>
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      value={formData.wallets?.[wallet.key as keyof typeof formData.wallets] || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        wallets: { ...formData.wallets, [wallet.key]: e.target.value }
+                      })}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300 font-mono text-sm"
+                      placeholder="Enter wallet address"
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Action Buttons */}
+            <div className="border-t-2 border-gray-200 pt-8">
+              <div className="flex justify-end space-x-4">
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all duration-200 flex items-center space-x-3 font-semibold disabled:opacity-50"
+                >
+                  <X className="h-5 w-5" />
+                  <span>Cancel</span>
+                </motion.button>
+
+                <motion.button
+                  type="submit"
+                  disabled={isLoading}
+                  whileHover={!isLoading ? { scale: 1.05 } : {}}
+                  whileTap={!isLoading ? { scale: 0.95 } : {}}
+                  className="px-8 py-3 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center space-x-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-5 w-5" />
+                      <span>Update User</span>
+                    </>
+                  )}
+                </motion.button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -1197,6 +2048,7 @@ const Users: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserForAnalytics, setSelectedUserForAnalytics] = useState<User | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
 
@@ -1214,7 +2066,19 @@ const Users: React.FC = () => {
     return apiFilters;
   }, [currentPage, pageSize, statusFilter]);
 
-  const { data: usersData, isLoading, error } = useGetUsers(filters);
+  const { data: usersData, isLoading, error } = useGetUsers(filters) as {
+    data?: {
+      users: User[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    };
+    isLoading: boolean;
+    error: any;
+  };
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
@@ -1235,10 +2099,10 @@ const Users: React.FC = () => {
   // Filter users by search term (client-side filtering for loaded data)
   const filteredUsers = useMemo(() => {
     if (!usersData?.users) return [];
-    
+
     if (!searchTerm) return usersData.users;
-    
-    return usersData.users.filter(user => 
+
+    return usersData.users.filter(user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.telegram.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1284,9 +2148,26 @@ const Users: React.FC = () => {
   };
 
   const handleEditUser = (user: User) => {
-    // TODO: Implement edit user modal
-    console.log('Edit user:', user);
-    toast.info('Edit user functionality coming soon');
+    setEditingUser(user);
+    setSelectedUser(null); // Закрываем модальное окно деталей
+  };
+
+  const handleUpdateUser = async (data: EditUserFormData) => {
+    if (!editingUser) return;
+
+    console.log('🔍 handleUpdateUser called with data:', data);
+    console.log('🔍 editingUser:', editingUser);
+
+    try {
+      console.log('🔍 Calling updateUserMutation.mutateAsync...');
+      await updateUserMutation.mutateAsync({ id: editingUser.id, data });
+      console.log('✅ updateUserMutation completed successfully');
+      toast.success('User updated successfully!');
+      setEditingUser(null);
+    } catch (error: any) {
+      console.error('❌ updateUserMutation failed:', error);
+      toast.error(error.message || 'Failed to update user');
+    }
   };
 
   if (error) {
@@ -1428,7 +2309,7 @@ const Users: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-500">
-                        {format(new Date(user.createdAt), 'MMM d, yyyy')}
+                        {format(new Date(user.createdAt), 'dd.MM.yy')}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -1515,6 +2396,14 @@ const Users: React.FC = () => {
           <MerchantAnalyticsModal
             user={selectedUserForAnalytics}
             onClose={() => setSelectedUserForAnalytics(null)}
+          />
+        )}
+        {editingUser && (
+          <EditUserModal
+            user={editingUser}
+            onClose={() => setEditingUser(null)}
+            onSubmit={handleUpdateUser}
+            isLoading={updateUserMutation.isPending}
           />
         )}
         <AddUserModal

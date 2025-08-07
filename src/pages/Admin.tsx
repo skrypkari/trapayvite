@@ -38,7 +38,7 @@ const Admin: React.FC = () => {
   // Chart configuration
   const chartOptions = {
     chart: {
-      type: 'area',
+      type: 'area' as const,
       toolbar: {
         show: false
       },
@@ -48,11 +48,11 @@ const Admin: React.FC = () => {
     },
     colors: ['#6936d3', '#94a3b8'],
     stroke: {
-      curve: 'smooth',
+      curve: 'smooth' as const,
       width: 2
     },
     fill: {
-      type: 'gradient',
+      type: 'gradient' as const,
       gradient: {
         shadeIntensity: 1,
         opacityFrom: 0.45,
@@ -61,9 +61,9 @@ const Admin: React.FC = () => {
       }
     },
     xaxis: {
-      categories: stats?.dailyRevenue?.map(item => 
-        format(new Date(item.date), 'MMM d')
-      ) || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      categories: (stats?.dailyRevenue && stats.dailyRevenue.length > 0)
+        ? stats.dailyRevenue.map(item => format(new Date(item.date), 'MMM d'))
+        : ['No data'],
       axisBorder: {
         show: false
       },
@@ -108,9 +108,13 @@ const Admin: React.FC = () => {
   const series = [
     {
       name: 'Revenue',
-      data: stats?.dailyRevenue?.map(item => item.amount) || [3100, 4000, 2800, 5100, 4200, 6000, 4800]
+      data: stats?.dailyRevenue?.map(item => item.amount) || []
     }
   ];
+
+  // Debug logging
+  console.log('Stats data:', stats);
+  console.log('Chart series:', series);
 
   // Handle loading and error states
   if (statsError) {
@@ -208,7 +212,9 @@ const Admin: React.FC = () => {
                 <p className="text-2xl font-bold text-gray-900">
                   {stats.totalRevenue.toLocaleString()} USDT
                 </p>
-                <p className="text-xs text-gray-400 mt-1">Platform wide</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {selectedPeriod === 'all' ? 'All time' : `Last ${selectedPeriod}`}
+                </p>
               </div>
             </motion.div>
 
@@ -283,7 +289,7 @@ const Admin: React.FC = () => {
             <p className="text-sm text-gray-500 mt-1">Track overall platform performance</p>
           </div>
           <div className="flex space-x-2">
-            {['7d', '30d', '90d'].map((period) => (
+            {['7d', '30d', '90d', 'all'].map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
@@ -293,7 +299,7 @@ const Admin: React.FC = () => {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                {period}
+                {period === 'all' ? 'All Time' : period}
               </button>
             ))}
           </div>
