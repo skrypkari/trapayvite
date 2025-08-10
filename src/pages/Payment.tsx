@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Copy,
   Check,
   AlertTriangle,
-=======
-import { 
-  Copy, 
-  Check, 
-  ExternalLink, 
-  AlertTriangle, 
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   CheckCircle2,
   XCircle,
   Wallet,
@@ -19,13 +11,9 @@ import {
   CreditCard,
   Shield,
   Loader2,
-<<<<<<< HEAD
   ArrowRight,
   User,
   Mail
-=======
-  ArrowRight
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -40,18 +28,8 @@ interface MasterCardFormData {
   expiryMonth: string;
   expiryYear: string;
   cvv: string;
-  firstName: string;
-  lastName: string;
+  fullName: string; // ✅ CHANGED: Объединили firstName и lastName в одно поле
   email: string;
-<<<<<<< HEAD
-  // ✅ REMOVED: phone, country, city, postCode, addressLine1 - only keep cardholder and email for gateway 1111
-=======
-  phone: string;
-  country: string;
-  city: string;
-  postCode: string;
-  addressLine1: string;
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
 }
 
 // ✅ NEW: Interface for MasterCard payment request
@@ -65,17 +43,8 @@ interface MasterCardPaymentRequest {
   cardHolder: {
     first_name: string;
     last_name: string;
-<<<<<<< HEAD
     email: string;
     // ✅ REMOVED: country, post_code, city, address_line_1, phone - only keep cardholder and email for gateway 1111
-=======
-    country: string;
-    post_code: string;
-    city: string;
-    address_line_1: string;
-    phone: string;
-    email: string;
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   };
   browser: {
     accept_header: string;
@@ -92,75 +61,42 @@ interface MasterCardPaymentRequest {
   };
 }
 
-<<<<<<< HEAD
-=======
-// ✅ NEW: Country options for MasterCard form
-const COUNTRY_OPTIONS = [
-  { value: '826', label: 'United Kingdom' },
-  { value: '840', label: 'United States' },
-  { value: '276', label: 'Germany' },
-  { value: '250', label: 'France' },
-  { value: '380', label: 'Italy' },
-  { value: '724', label: 'Spain' },
-  { value: '528', label: 'Netherlands' },
-  { value: '056', label: 'Belgium' },
-  { value: '040', label: 'Austria' },
-  { value: '756', label: 'Switzerland' },
-  { value: '578', label: 'Norway' },
-  { value: '752', label: 'Sweden' },
-  { value: '208', label: 'Denmark' },
-  { value: '246', label: 'Finland' },
-  { value: '616', label: 'Poland' },
-  { value: '203', label: 'Czech Republic' },
-  { value: '348', label: 'Hungary' },
-  { value: '642', label: 'Romania' },
-  { value: '100', label: 'Bulgaria' },
-  { value: '191', label: 'Croatia' },
-  { value: '705', label: 'Slovenia' },
-  { value: '703', label: 'Slovakia' },
-  { value: '233', label: 'Estonia' },
-  { value: '428', label: 'Latvia' },
-  { value: '440', label: 'Lithuania' },
-  { value: '372', label: 'Ireland' },
-  { value: '620', label: 'Portugal' },
-  { value: '300', label: 'Greece' },
-  { value: '196', label: 'Cyprus' },
-  { value: '470', label: 'Malta' },
-  { value: '442', label: 'Luxembourg' },
-  { value: '124', label: 'Canada' },
-  { value: '036', label: 'Australia' },
-  { value: '554', label: 'New Zealand' },
-  { value: '392', label: 'Japan' }
-];
-
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
 // ✅ NEW: MasterCard Payment Form Component
 const MasterCardForm: React.FC<{
   paymentData: PaymentData;
+  urlParams?: URLSearchParams; // ✅ NEW: Добавили параметр для URL параметров
   onSuccess: (redirectUrl?: string) => void;
   onFailure: (reason: string, redirectUrl?: string) => void;
-}> = ({ paymentData, onSuccess, onFailure }) => {
+}> = ({ paymentData, urlParams, onSuccess, onFailure }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<MasterCardFormData>({
     cardNumber: '',
     expiryMonth: '',
     expiryYear: '',
     cvv: '',
-    firstName: '',
-    lastName: '',
-<<<<<<< HEAD
+    fullName: '',
     email: ''
-    // ✅ REMOVED: phone, country, city, postCode, addressLine1 - only keep cardholder and email for gateway 1111
-=======
-    email: '',
-    phone: '',
-    country: '826', // Default to UK
-    city: '',
-    postCode: '',
-    addressLine1: ''
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   });
   const [formErrors, setFormErrors] = useState<Partial<MasterCardFormData>>({});
+
+  // ✅ NEW: Инициализация формы с параметрами из URL
+  useEffect(() => {
+    // Получаем параметры из URL
+    const searchParams = urlParams || new URLSearchParams(window.location.search);
+    const nameParam = searchParams.get('name');
+    const emailParam = searchParams.get('email');
+
+    console.log('🔍 URL параметры:', { name: nameParam, email: emailParam });
+
+    if (nameParam || emailParam) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: nameParam || prev.fullName,
+        email: emailParam || prev.email
+      }));
+      console.log('✅ Форма заполнена из URL параметров');
+    }
+  }, [urlParams]);
 
   // Get user's IP address
   const getUserIP = async (): Promise<string> => {
@@ -176,14 +112,8 @@ const MasterCardForm: React.FC<{
 
   // Get browser information
   const getBrowserInfo = () => {
-<<<<<<< HEAD
     const timezoneOffset = new Date().getTimezoneOffset();
 
-=======
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const timezoneOffset = new Date().getTimezoneOffset();
-    
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
     return {
       accept_header: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       color_depth: screen.colorDepth || 24,
@@ -231,33 +161,16 @@ const MasterCardForm: React.FC<{
     }
 
     // Cardholder validation
-    if (!formData.firstName.trim()) {
-      errors.firstName = 'First name is required';
-    }
-    if (!formData.lastName.trim()) {
-      errors.lastName = 'Last name is required';
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+    } else if (formData.fullName.trim().split(' ').length < 2) {
+      errors.fullName = 'Please enter your full name (first and last name)';
     }
     if (!formData.email.trim()) {
       errors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       errors.email = 'Please enter a valid email address';
     }
-<<<<<<< HEAD
-    // ✅ REMOVED: phone, city, postCode, addressLine1 validation - only keep cardholder and email for gateway 1111
-=======
-    if (!formData.phone.trim()) {
-      errors.phone = 'Phone number is required';
-    }
-    if (!formData.city.trim()) {
-      errors.city = 'City is required';
-    }
-    if (!formData.postCode.trim()) {
-      errors.postCode = 'Post code is required';
-    }
-    if (!formData.addressLine1.trim()) {
-      errors.addressLine1 = 'Address is required';
-    }
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -295,11 +208,6 @@ const MasterCardForm: React.FC<{
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
     if (!validateForm()) {
       return;
     }
@@ -310,6 +218,11 @@ const MasterCardForm: React.FC<{
       const userIP = await getUserIP();
       const browserInfo = getBrowserInfo();
 
+      // ✅ NEW: Разделяем полное имя на имя и фамилию
+      const nameParts = formData.fullName.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || nameParts[0] || ''; // Если только одно слово, используем его как фамилию тоже
+
       const requestData: MasterCardPaymentRequest = {
         cardData: {
           number: formData.cardNumber.replace(/\s/g, ''),
@@ -318,19 +231,9 @@ const MasterCardForm: React.FC<{
           cvv: formData.cvv
         },
         cardHolder: {
-          first_name: formData.firstName.trim(),
-          last_name: formData.lastName.trim(),
-<<<<<<< HEAD
+          first_name: firstName,
+          last_name: lastName,
           email: formData.email.trim()
-          // ✅ REMOVED: country, post_code, city, address_line_1, phone - only keep cardholder and email for gateway 1111
-=======
-          country: formData.country,
-          post_code: formData.postCode.trim(),
-          city: formData.city.trim(),
-          address_line_1: formData.addressLine1.trim(),
-          phone: formData.phone.trim(),
-          email: formData.email.trim()
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
         },
         browser: {
           ...browserInfo,
@@ -346,7 +249,6 @@ const MasterCardForm: React.FC<{
           transactionId?: string;
           redirectUrl?: string;
           failureReason?: string;
-<<<<<<< HEAD
           requires3ds?: boolean;
           gatewayPaymentId?: string;
           final?: boolean;
@@ -361,11 +263,6 @@ const MasterCardForm: React.FC<{
         return;
       }
 
-=======
-        };
-      }>(`/payments/${paymentData.id}/process-mastercard`, requestData);
-
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
       if (response.success && response.result.status === 'PAID') {
         toast.success('Payment processed successfully!');
         onSuccess(response.result.redirectUrl);
@@ -394,21 +291,12 @@ const MasterCardForm: React.FC<{
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Card Information */}
-<<<<<<< HEAD
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <CreditCard className="h-5 w-5 mr-2" />
             Card Information
           </h3>
 
-=======
-        <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
-            <CreditCard className="h-5 w-5 mr-2" />
-            Card Information
-          </h3>
-          
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
           <div className="space-y-4">
             {/* Card Number */}
             <div>
@@ -424,18 +312,10 @@ const MasterCardForm: React.FC<{
                   id="cardNumber"
                   value={formData.cardNumber}
                   onChange={handleCardNumberChange}
-<<<<<<< HEAD
                   className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${formErrors.cardNumber
                       ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                       : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                     } focus:outline-none focus:ring-2`}
-=======
-                  className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.cardNumber 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-red-500 focus:ring-red-200'
-                  } focus:outline-none focus:ring-2`}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                   placeholder="1234 5678 9012 3456"
                   maxLength={19}
                   disabled={isSubmitting}
@@ -460,18 +340,10 @@ const MasterCardForm: React.FC<{
                     const value = e.target.value.replace(/\D/g, '').slice(0, 2);
                     handleInputChange('expiryMonth', value);
                   }}
-<<<<<<< HEAD
                   className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.expiryMonth
                       ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                       : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                     } focus:outline-none focus:ring-2`}
-=======
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.expiryMonth 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-red-500 focus:ring-red-200'
-                  } focus:outline-none focus:ring-2`}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                   placeholder="MM"
                   maxLength={2}
                   disabled={isSubmitting}
@@ -493,18 +365,10 @@ const MasterCardForm: React.FC<{
                     const value = e.target.value.replace(/\D/g, '').slice(0, 2);
                     handleInputChange('expiryYear', value);
                   }}
-<<<<<<< HEAD
                   className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.expiryYear
                       ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                       : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                     } focus:outline-none focus:ring-2`}
-=======
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.expiryYear 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-red-500 focus:ring-red-200'
-                  } focus:outline-none focus:ring-2`}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                   placeholder="YY"
                   maxLength={2}
                   disabled={isSubmitting}
@@ -526,18 +390,10 @@ const MasterCardForm: React.FC<{
                     const value = e.target.value.replace(/\D/g, '').slice(0, 4);
                     handleInputChange('cvv', value);
                   }}
-<<<<<<< HEAD
                   className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.cvv
                       ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                       : 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                     } focus:outline-none focus:ring-2`}
-=======
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.cvv 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-red-500 focus:ring-red-200'
-                  } focus:outline-none focus:ring-2`}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                   placeholder="123"
                   maxLength={4}
                   disabled={isSubmitting}
@@ -551,89 +407,37 @@ const MasterCardForm: React.FC<{
         </div>
 
         {/* Billing Information */}
-<<<<<<< HEAD
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <User className="h-5 w-5 mr-2" />
             Billing Information
           </h3>
 
-=======
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-            <User className="h-5 w-5 mr-2" />
-            Billing Information
-          </h3>
-          
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
           <div className="space-y-4">
-            {/* Name */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name *
-                </label>
-                <input
-                  type="text"
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-<<<<<<< HEAD
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.firstName
-                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                    } focus:outline-none focus:ring-2`}
-=======
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.firstName 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+            {/* Full Name */}
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+                Full Name *
+              </label>
+              <input
+                type="text"
+                id="fullName"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.fullName
+                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                   } focus:outline-none focus:ring-2`}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
-                  placeholder="John"
-                  disabled={isSubmitting}
-                />
-                {formErrors.firstName && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.firstName}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name *
-                </label>
-                <input
-                  type="text"
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-<<<<<<< HEAD
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.lastName
-                      ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                    } focus:outline-none focus:ring-2`}
-=======
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.lastName 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                  } focus:outline-none focus:ring-2`}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
-                  placeholder="Doe"
-                  disabled={isSubmitting}
-                />
-                {formErrors.lastName && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.lastName}</p>
-                )}
-              </div>
+                placeholder="John Doe"
+                disabled={isSubmitting}
+              />
+              {formErrors.fullName && (
+                <p className="mt-1 text-sm text-red-600">{formErrors.fullName}</p>
+              )}
             </div>
 
             {/* Contact Information */}
-<<<<<<< HEAD
             <div className="grid grid-cols-1 gap-4">
-=======
-            <div className="grid grid-cols-2 gap-4">
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                   Email Address *
@@ -647,18 +451,10 @@ const MasterCardForm: React.FC<{
                     id="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-<<<<<<< HEAD
                     className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${formErrors.email
                         ? 'border-gray-300 focus:border-gray-500 focus:ring-gray-200'
                         : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
                       } focus:outline-none focus:ring-2`}
-=======
-                    className={`w-full pl-10 pr-4 py-3 rounded-xl border transition-colors ${
-                      formErrors.email 
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                        : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                    } focus:outline-none focus:ring-2`}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                     placeholder="john@example.com"
                     disabled={isSubmitting}
                   />
@@ -667,127 +463,11 @@ const MasterCardForm: React.FC<{
                   <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
                 )}
               </div>
-<<<<<<< HEAD
             </div>
-            {/* ✅ REMOVED: All other fields (phone, address, city, etc.) - only keep cardholder and email for gateway 1111 */}
-=======
-
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number *
-                </label>
-                <input
-                  type="tel"
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.phone 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                  } focus:outline-none focus:ring-2`}
-                  placeholder="+44 1234 567890"
-                  disabled={isSubmitting}
-                />
-                {formErrors.phone && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.phone}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Address */}
-            <div>
-              <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-2">
-                Address *
-              </label>
-              <input
-                type="text"
-                id="addressLine1"
-                value={formData.addressLine1}
-                onChange={(e) => handleInputChange('addressLine1', e.target.value)}
-                className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                  formErrors.addressLine1 
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                } focus:outline-none focus:ring-2`}
-                placeholder="123 Main Street"
-                disabled={isSubmitting}
-              />
-              {formErrors.addressLine1 && (
-                <p className="mt-1 text-sm text-red-600">{formErrors.addressLine1}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                  City *
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.city 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                  } focus:outline-none focus:ring-2`}
-                  placeholder="London"
-                  disabled={isSubmitting}
-                />
-                {formErrors.city && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.city}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="postCode" className="block text-sm font-medium text-gray-700 mb-2">
-                  Post Code *
-                </label>
-                <input
-                  type="text"
-                  id="postCode"
-                  value={formData.postCode}
-                  onChange={(e) => handleInputChange('postCode', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${
-                    formErrors.postCode 
-                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200' 
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                  } focus:outline-none focus:ring-2`}
-                  placeholder="E14 5AB"
-                  disabled={isSubmitting}
-                />
-                {formErrors.postCode && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.postCode}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
-                  Country *
-                </label>
-                <select
-                  id="country"
-                  value={formData.country}
-                  onChange={(e) => handleInputChange('country', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-blue-200 focus:outline-none focus:ring-2 transition-colors"
-                  disabled={isSubmitting}
-                >
-                  {COUNTRY_OPTIONS.map((country) => (
-                    <option key={country.value} value={country.value}>
-                      {country.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
           </div>
         </div>
 
         {/* Security Notice */}
-<<<<<<< HEAD
         <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4">
           <div className="flex items-start space-x-3">
             <div className="flex-shrink-0">
@@ -796,16 +476,6 @@ const MasterCardForm: React.FC<{
             <div>
               <h4 className="text-sm font-medium text-blue-900">Secure Payment</h4>
               <p className="mt-1 text-sm text-blue-700">
-=======
-        <div className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-xl p-4">
-          <div className="flex items-start space-x-3">
-            <div className="flex-shrink-0">
-              <Shield className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-green-900">Secure Payment</h4>
-              <p className="mt-1 text-sm text-green-700">
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                 Your payment information is encrypted and secure. We use industry-standard security measures to protect your data.
               </p>
             </div>
@@ -816,11 +486,7 @@ const MasterCardForm: React.FC<{
         <button
           type="submit"
           disabled={isSubmitting}
-<<<<<<< HEAD
           className="w-full bg-primary text-white py-4 px-6 rounded-xl font-medium hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
-=======
-          className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-4 px-6 rounded-xl font-medium hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg"
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
         >
           {isSubmitting ? (
             <>
@@ -1262,6 +928,7 @@ const TestGatewayForm: React.FC<{
 const Payment: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ NEW: Для получения URL параметров
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1273,6 +940,9 @@ const Payment: React.FC = () => {
     message: string;
     redirectUrl?: string;
   } | null>(null);
+
+  // ✅ NEW: Получаем URL параметры
+  const urlParams = new URLSearchParams(location.search);
 
   // ✅ NEW: Function to get user's IP address
   const getUserIP = async (): Promise<string | null> => {
@@ -1534,11 +1204,7 @@ const Payment: React.FC = () => {
   };
 
 
-<<<<<<< HEAD
   const isTestGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '0000';
-=======
-  const isTestGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '0000' && getGatewayIdSafe(paymentData.gateway) === '1111';
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   const isMasterCardGateway = paymentData && getGatewayIdSafe(paymentData.gateway) === '1111';
 
   if (isLoading) {
@@ -1591,11 +1257,7 @@ const Payment: React.FC = () => {
       </div>
     );
   }
-<<<<<<< HEAD
   if (paymentData?.white_url && !isTestGateway && !isMasterCardGateway) {
-=======
-  if (paymentData?.white_url && !isTestGateway) {
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
     return (
       <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
         <iframe
@@ -1610,11 +1272,7 @@ const Payment: React.FC = () => {
   if (
     paymentData?.external_payment_url &&
     paymentData.external_payment_url.includes('tesoft') &&
-<<<<<<< HEAD
     !isTestGateway && !isMasterCardGateway
-=======
-    !isTestGateway
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   ) {
     return (
       <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0 }}>
@@ -1680,6 +1338,7 @@ const Payment: React.FC = () => {
                 {paymentData.status === 'PENDING' && isMasterCardGateway && (
                   <MasterCardForm
                     paymentData={paymentData}
+                    urlParams={urlParams}
                     onSuccess={handleTestPaymentSuccess}
                     onFailure={handleTestPaymentFailure}
                   />

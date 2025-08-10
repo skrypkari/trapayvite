@@ -16,12 +16,16 @@ export interface GatewayInfo {
 export const GATEWAY_ID_MAP: Record<string, string> = {
   'Test Gateway': '0000',
   'test gateway': '0000',  // ✅ Support lowercase from server
+  'test_gateway': '0000',  // ✅ Support snake_case from server
   'Plisio': '0001',
   'plisio': '0001',    // ✅ Support lowercase from server
   'Rapyd': '0010',
   'rapyd': '0010',     // ✅ Support lowercase from server
   'CoinToPay': '0100',
   'cointopay': '0100', // ✅ Support lowercase from server
+  'CoinToPay2': '0101',
+  'cointopay2': '0101', // ✅ Support lowercase from server
+  'Open Banking 2': '0101',
   'Noda': '1000',
   'noda': '1000',      // ✅ Support lowercase from server
   'KLYME_EU': '1001',
@@ -46,6 +50,7 @@ export const ID_TO_GATEWAY_MAP: Record<string, string> = {
   '0001': 'Plisio',
   '0010': 'Rapyd',
   '0100': 'CoinToPay',
+  '0101': 'CoinToPay2',
   '1000': 'Noda',
   '1001': 'KLYME EU',
   '1010': 'KLYME GB',
@@ -95,6 +100,16 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
     fee: '10%',
     payout: 'T+5'
   },
+  '0101': {
+    id: '0101',
+    name: 'CoinToPay2',
+    displayName: 'Gateway 0101 - Open Banking 2 (EU) + SEPA',
+    description: 'Enhanced digital payment solutions - ID: 0101',
+    features: ['EUR', 'SEPA'],
+    color: 'bg-teal-500',
+    fee: '10%',
+    payout: 'T+5'
+  },
   '1000': {
     id: '1000',
     name: 'Noda',
@@ -138,15 +153,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '1111': {
     id: '1111',
     name: 'MasterCard',
-<<<<<<< HEAD
     displayName: 'Gateway 1111 - Mastercard Global',
     description: 'Global payment processing - ID: 1111',
     features: ['EUR', 'USD'],
-=======
-    displayName: 'Gateway 1111 - Bank Card - MasterCard',
-    description: 'MasterCard payment processing - ID: 1111',
-    features: ['Cards', 'MasterCard'],
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
     color: 'bg-red-500',
     fee: '10%',
     payout: 'T+5'

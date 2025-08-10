@@ -2,20 +2,14 @@ import React, { useState, useMemo } from 'react';
 import {
   Search,
   Calendar,
-  Filter,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   Eye,
   CheckCircle2,
   Clock,
   XCircle,
-  ArrowUpRight,
-  ArrowDownLeft,
-  RefreshCw,
-  ChevronDown,
   Download,
-  FileText,
-  Share2,
-  Printer,
   Wallet,
   CreditCard,
   Receipt,
@@ -23,8 +17,6 @@ import {
   Copy,
   DollarSign,
   TrendingUp,
-  ArrowRight,
-  MoreHorizontal,
   Globe,
   Building2,
   Bitcoin,
@@ -34,23 +26,19 @@ import {
   AlertTriangle,
   Loader2,
   ExternalLink,
-  User,
-  MapPin
+  User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
-import { toast } from 'sonner';
 import CustomSelect from '../components/CustomSelect';
-import DatePicker from '../components/DatePicker';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { formatCurrency, formatCurrencyCompact } from '../utils/currency';
 import { 
   useShopPayments, 
   useShopStatistics,
   type ShopPayment,
   type PaymentFilters 
 } from '../hooks/useShop';
-import { getGatewayInfo, getGatewayDisplayName, getGatewayIdSafe } from '../utils/gatewayMapping';
+import { getGatewayDisplayName } from '../utils/gatewayMapping';
 
 const PaymentDetailsModal: React.FC<{
   payment: ShopPayment;
@@ -371,13 +359,47 @@ const Transactions: React.FC = () => {
   const [currencyFilter, setCurrencyFilter] = useState<string>('all');
   const [selectedPayment, setSelectedPayment] = useState<ShopPayment | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const pageSize = 20; // ✅ FIXED: Remove setPageSize since it's not used
+
+  // ✅ NEW: Sort configuration
+  const [sortField, setSortField] = useState<string>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // ✅ NEW: Handle sort change
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting changes
+  };
+
+  // ✅ NEW: Get sort icon for sortable columns
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortOrder === 'desc' 
+      ? <ArrowDown className="h-4 w-4" />
+      : <ArrowUp className="h-4 w-4" />;
+  };
+
+  // ✅ NEW: Get sort button classes
+  const getSortButtonClasses = (field: string) => {
+    const baseClasses = "flex items-center space-x-1 text-xs font-semibold text-gray-600 hover:text-gray-800 transition-colors duration-200";
+    const activeClasses = sortField === field ? "text-primary" : "";
+    return `${baseClasses} ${activeClasses}`;
+  };
 
   // Build filters for API
   const filters: PaymentFilters = useMemo(() => {
     const apiFilters: PaymentFilters = {
       page: currentPage,
       limit: pageSize,
+      sortBy: sortField,        // ✅ NEW: Add sort field
+      sortOrder: sortOrder,     // ✅ NEW: Add sort order
     };
 
     if (statusFilter !== 'all') {
@@ -393,7 +415,7 @@ const Transactions: React.FC = () => {
     }
 
     return apiFilters;
-  }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter]);
+  }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter, sortField, sortOrder]);
 
   const { data: paymentsData, isLoading, error } = useShopPayments(filters);
   const { data: statistics } = useShopStatistics('30d');
@@ -426,25 +448,15 @@ const Transactions: React.FC = () => {
 
   const gatewayOptions = [
     { value: 'all', label: 'All Gateways' },
-<<<<<<< HEAD
     { value: '0001', label: 'Plisio' },
     { value: '0010', label: 'Rapyd' },
     { value: '0100', label: 'CoinToPay' },
+    { value: '0101', label: 'CoinToPay2' },
     { value: '1000', label: 'Noda' },
     { value: '1001', label: 'KLYME_EU' },
     { value: '1010', label: 'KLYME_GB' },
     { value: '1100', label: 'KLYME_DE' },
     { value: '1111', label: 'MasterCard' },
-=======
-    { value: '0001', label: 'Gateway 0001' },
-    { value: '0010', label: 'Gateway 0010' },
-    { value: '0100', label: 'Gateway 0100' },
-    { value: '1000', label: 'Gateway 1000' },
-    { value: '1001', label: 'Gateway 1001' },
-    { value: '1010', label: 'Gateway 1010' },
-    { value: '1100', label: 'Gateway 1100' },
-    { value: '1111', label: 'Gateway 1111' },
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   ];
 
   const currencyOptions = [
@@ -467,160 +479,6 @@ const Transactions: React.FC = () => {
     { value: 'USDC', label: 'USDC' },
   ];
 
-<<<<<<< HEAD
-=======
-  const columns = useMemo(() => {
-    const columnHelper = createColumnHelper<ShopPayment>();
-    
-    return [
-      columnHelper.accessor('created_at', {
-        header: ({ column }) => (
-          <button
-            onClick={() => column.toggleSorting()}
-            className="flex items-center space-x-2 group"
-          >
-            <span className="hidden sm:inline">Date</span>
-            <span className="sm:hidden">Date</span>
-            <ArrowUpDown className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
-          </button>
-        ),
-        cell: (info) => (
-          <div className="whitespace-nowrap">
-            <span className="hidden sm:inline">{format(new Date(info.getValue()), 'MMM d, yyyy')}</span>
-            <span className="sm:hidden">{format(new Date(info.getValue()), 'MM/dd')}</span>
-          </div>
-        ),
-      }),
-      columnHelper.accessor('id', {
-        header: 'Payment ID',
-        cell: (info) => (
-          <span className="font-mono text-gray-600 text-sm">{info.getValue().slice(0, 8)}...</span>
-        ),
-      }),
-      columnHelper.accessor('gateway', {
-        header: 'Gateway',
-        cell: (info) => {
-          // ✅ FIXED: Use safe gateway display function
-          const gatewayName = info.getValue();
-          const gatewayDisplayName = getGatewayDisplayName(gatewayName);
-          
-          return (
-            <div className="text-sm font-medium text-gray-900">
-              {gatewayDisplayName}
-            </div>
-          );
-        },
-      }),
-      // ✅ UPDATED: Separate amount and currency columns
-      columnHelper.accessor('amount', {
-        header: ({ column }) => (
-          <button
-            onClick={() => column.toggleSorting()}
-            className="flex items-center space-x-2 group"
-          >
-            <span>Amount</span>
-            <ArrowUpDown className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
-          </button>
-        ),
-        cell: (info) => {
-          const amount = info.getValue();
-          return (
-            <div className="font-medium whitespace-nowrap text-gray-900">
-              {amount.toFixed(2)}
-            </div>
-          );
-        },
-      }),
-      columnHelper.accessor('currency', {
-        header: 'Currency',
-        cell: (info) => (
-          <div className="text-sm text-gray-600">
-            {info.getValue()}
-          </div>
-        ),
-      }),
-      columnHelper.accessor('customerName', {
-        header: 'Customer Name',
-        cell: (info) => {
-          const name = info.getValue();
-          return (
-            <div className="text-sm text-gray-900">
-              {name || '-'}
-            </div>
-          );
-        },
-      }),
-      columnHelper.accessor('status', {
-        header: 'Status',
-        cell: (info) => {
-          const status = info.getValue();
-          return (
-            <div className="flex items-center space-x-2">
-              {status.toUpperCase() === 'PAID' && (
-                <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg">
-                  <CheckCircle2 className="h-4 w-4 hidden sm:inline" />
-                  <span className="text-sm font-medium">Paid</span>
-                </div>
-              )}
-              {status.toUpperCase() === 'PENDING' && (
-                <div className="flex items-center space-x-2 text-yellow-600 bg-yellow-50 px-3 py-1 rounded-lg">
-                  <Clock className="h-4 w-4 hidden sm:inline" />
-                  <span className="text-sm font-medium">Pending</span>
-                </div>
-              )}
-              {/* ✅ NEW: PROCESSING status */}
-              {status.toUpperCase() === 'PROCESSING' && (
-                <div className="flex items-center space-x-2 text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
-                  <Loader2 className="h-4 w-4 hidden sm:inline animate-spin" />
-                  <span className="text-sm font-medium">Processing</span>
-                </div>
-              )}
-              {status.toUpperCase() === 'FAILED' && (
-                <div className="flex items-center space-x-2 text-red-600 bg-red-50 px-3 py-1 rounded-lg">
-                  <AlertCircle className="h-4 w-4 hidden sm:inline" />
-                  <span className="text-sm font-medium">Failed</span>
-                </div>
-              )}
-              {status.toUpperCase() === 'EXPIRED' && (
-                <div className="flex items-center space-x-2 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">
-                  <XCircle className="h-4 w-4 hidden sm:inline" />
-                  <span className="text-sm font-medium">Expired</span>
-                </div>
-              )}
-            </div>
-          );
-        },
-      }),
-      columnHelper.display({
-        id: 'actions',
-        header: '',
-        cell: (info) => (
-          <div className="flex items-center justify-end space-x-2">
-            <button
-              onClick={() => setSelectedPayment(info.row.original)}
-              className="p-2 text-gray-400 hover:text-primary hover:bg-gray-100 rounded-lg transition-all duration-200"
-            >
-              <Eye className="h-4 w-4" />
-            </button>
-          </div>
-        ),
-      }),
-    ];
-  }, []);
-
-  const table = useReactTable({
-    data: paymentsData?.payments || [],
-    columns,
-    state: {
-      sorting,
-    },
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
-
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   if (error) {
     return (
       <div className="p-6 text-center">
@@ -759,10 +617,13 @@ const Transactions: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
                   <th className="text-left px-4 py-3">
-                    <button className="flex items-center space-x-1 text-xs font-semibold text-gray-600 hover:text-gray-800 transition-colors duration-200">
+                    <button 
+                      onClick={() => handleSort('created_at')}
+                      className={getSortButtonClasses('created_at')}
+                    >
                       <Calendar className="h-3 w-3" />
                       <span>Date</span>
-                      <ArrowUpDown className="h-3 w-3" />
+                      {getSortIcon('created_at')}
                     </button>
                   </th>
                   <th className="text-left px-4 py-3">
@@ -778,10 +639,13 @@ const Transactions: React.FC = () => {
                     </div>
                   </th>
                   <th className="text-left px-4 py-3">
-                    <button className="flex items-center space-x-1 text-xs font-semibold text-gray-600 hover:text-gray-800 transition-colors duration-200">
+                    <button 
+                      onClick={() => handleSort('amount')}
+                      className={getSortButtonClasses('amount')}
+                    >
                       <DollarSign className="h-3 w-3" />
                       <span>Amount</span>
-                      <ArrowUpDown className="h-3 w-3" />
+                      {getSortIcon('amount')}
                     </button>
                   </th>
                   <th className="text-left px-4 py-3">

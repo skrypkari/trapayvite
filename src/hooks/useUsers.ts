@@ -40,10 +40,7 @@ export interface GatewaySettings {
     commission: number;
     minAmount: number;
     maxAmount: number;
-<<<<<<< HEAD
     payoutDelay: number;
-=======
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   };
 }
 
@@ -175,16 +172,12 @@ const transformUser = (serverUser: any): User => {
       Object.entries(serverUser.gatewaySettings).forEach(([gatewayName, settings]: [string, any]) => {
         const gatewayId = convertGatewayNamesToIds([gatewayName])[0];
         if (gatewayId) {
-<<<<<<< HEAD
           gatewaySettingsWithIds[gatewayId] = {
             commission: settings.commission || 0,
             minAmount: settings.minAmount || 0,
             maxAmount: settings.maxAmount || 0,
             payoutDelay: settings.payoutDelay || 0
           };
-=======
-          gatewaySettingsWithIds[gatewayId] = { commission: (settings as any).commission };
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
         }
       });
       return gatewaySettingsWithIds;
@@ -261,7 +254,6 @@ export const validateUserData = (data: EditUserFormData): ValidationError[] => {
         }
       });
 
-<<<<<<< HEAD
       // Validate gateway settings values
       Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
         if (settings.commission < 0 || settings.commission > 100) {
@@ -290,35 +282,6 @@ export const validateUserData = (data: EditUserFormData): ValidationError[] => {
         }
       });
     }
-=======
-    // Validate gateway settings values
-    Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
-      if (settings.commission < 0 || settings.commission > 100) {
-        errors.push({ 
-          field: `gatewaySettings.${gatewayId}.commission`, 
-          message: `Commission for Gateway ${gatewayId} must be between 0 and 100` 
-        });
-      }
-      if (settings.minAmount < 0) {
-        errors.push({ 
-          field: `gatewaySettings.${gatewayId}.minAmount`, 
-          message: `Min amount for Gateway ${gatewayId} must be 0 or greater` 
-        });
-      }
-      if (settings.maxAmount < 0) {
-        errors.push({ 
-          field: `gatewaySettings.${gatewayId}.maxAmount`, 
-          message: `Max amount for Gateway ${gatewayId} must be 0 or greater` 
-        });
-      }
-      if (settings.minAmount > settings.maxAmount && settings.maxAmount > 0) {
-        errors.push({ 
-          field: `gatewaySettings.${gatewayId}.maxAmount`, 
-          message: `Max amount for Gateway ${gatewayId} must be greater than min amount` 
-        });
-      }
-    });
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
   }
 
   // Status validation
@@ -368,12 +331,8 @@ export function useCreateUser() {
           gatewaySettingsForApi[gatewayName] = { 
             commission: settings.commission,
             minAmount: settings.minAmount,
-<<<<<<< HEAD
             maxAmount: settings.maxAmount,
             payoutDelay: settings.payoutDelay
-=======
-            maxAmount: settings.maxAmount
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
           };
         }
       });
@@ -523,12 +482,8 @@ export function useUpdateUser() {
             gatewaySettingsForApi[gatewayName] = { 
               commission: settings.commission,
               minAmount: settings.minAmount || 0,
-<<<<<<< HEAD
               maxAmount: settings.maxAmount || 0,
               payoutDelay: settings.payoutDelay || 0
-=======
-              maxAmount: settings.maxAmount || 0
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
             };
           }
         });

@@ -142,13 +142,15 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// Filters - ✅ UPDATED: Added PROCESSING status and currency filter
+// Filters - ✅ UPDATED: Added PROCESSING status, currency filter, and sorting
 export interface PaymentFilters {
   page?: number;
   limit?: number;
   status?: 'PENDING' | 'PROCESSING' | 'PAID' | 'EXPIRED' | 'FAILED';
   gateway?: string; // Gateway ID
   currency?: string; // ✅ NEW: Added currency filter
+  sortBy?: string; // ✅ NEW: Sort field (e.g., 'created_at', 'amount', 'status')
+  sortOrder?: 'asc' | 'desc'; // ✅ NEW: Sort order
 }
 
 export interface PayoutFilters {
@@ -286,6 +288,8 @@ export function useShopPayments(filters: PaymentFilters = {}) {
         params.append('gateway', gatewayName);
       }
       if (filters.currency) params.append('currency', filters.currency); // ✅ NEW: Added currency filter
+      if (filters.sortBy) params.append('sortBy', filters.sortBy); // ✅ NEW: Add sort field
+      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder); // ✅ NEW: Add sort order
       
       const queryString = params.toString();
       const response = await api.get<{
@@ -344,12 +348,9 @@ export function useShopPayouts(filters: PayoutFilters = {}) {
       if (filters.network) params.append('network', filters.network);
       if (filters.periodFrom) params.append('periodFrom', filters.periodFrom);
       if (filters.periodTo) params.append('periodTo', filters.periodTo);
-<<<<<<< HEAD
       // Поддержка старых полей для совместимости
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
       if (filters.dateTo) params.append('dateTo', filters.dateTo);
-=======
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
       
       const queryString = params.toString();
       const response = await api.get<ApiResponse<{

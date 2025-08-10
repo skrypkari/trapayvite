@@ -182,6 +182,9 @@ const GATEWAY_CURRENCIES = {
   '0100': [ // CoinToPay - только EUR
     { value: 'EUR', label: 'EUR - Euro' }
   ],
+  '0101': [ // CoinToPay2 - только EUR
+    { value: 'EUR', label: 'EUR - Euro' }
+  ],
   '1001': [ // KLYME EU - только EUR
     { value: 'EUR', label: 'EUR - Euro' }
   ],
@@ -196,7 +199,6 @@ const GATEWAY_CURRENCIES = {
     { value: 'GBP', label: 'GBP - British Pound' },
     { value: 'NOK', label: 'NOK - Norwegian Krone' },
     { value: 'JPY', label: 'JPY - Japanese Yen' }
-<<<<<<< HEAD
   ],
   '1111': [ // MasterCard - только карты
     { value: 'EUR', label: 'EUR - Euro' },
@@ -206,8 +208,15 @@ const GATEWAY_CURRENCIES = {
     { value: 'GBP', label: 'GBP - British Pound' },
     { value: 'NOK', label: 'NOK - Norwegian Krone' },
     { value: 'JPY', label: 'JPY - Japanese Yen' }
-=======
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
+  ],
+  '0000': [
+    { value: 'EUR', label: 'EUR - Euro' },
+    { value: 'USD', label: 'USD - US Dollar' },
+    { value: 'AUD', label: 'AUD - Australian Dollar' },
+    { value: 'CAD', label: 'CAD - Canadian Dollar' },
+    { value: 'GBP', label: 'GBP - British Pound' },
+    { value: 'NOK', label: 'NOK - Norwegian Krone' },
+    { value: 'JPY', label: 'JPY - Japanese Yen' } 
   ]
 };
 
@@ -770,11 +779,7 @@ const PaymentLinks: React.FC = () => {
         value: gatewayId,
         label: gatewayInfo ? gatewayInfo.displayName : `Gateway ${gatewayId}`
       };
-<<<<<<< HEAD
     }) || []),
-=======
-    }) || [])
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
     { value: '1111', label: 'MasterCard' },
   ];
 

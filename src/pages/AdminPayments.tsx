@@ -614,11 +614,7 @@ const AdminPayments: React.FC = () => {
     }
 
     return apiFilters;
-<<<<<<< HEAD
   }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter, shopIdFilter, searchTerm, sortBy, sortOrder]);
-=======
-  }, [currentPage, pageSize, statusFilter, gatewayFilter, currencyFilter, shopIdFilter, searchTerm]);
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
 
   const { data: paymentsData, isLoading, error } = usePayments(filters);
 
@@ -643,6 +639,7 @@ const AdminPayments: React.FC = () => {
     { value: '0001', label: 'Plisio' },
     { value: '0010', label: 'Rapyd' },
     { value: '0100', label: 'CoinToPay' },
+    { value: '0101', label: 'CoinToPay2' },
     { value: '1000', label: 'Noda' },
     { value: '1001', label: 'KLYME_EU' },
     { value: '1010', label: 'KLYME_GB' },
@@ -679,10 +676,6 @@ const AdminPayments: React.FC = () => {
         options.push({
           value: merchant.id,
           label: merchant.username, // ✅ Show only username as requested
-<<<<<<< HEAD
-=======
-          icon: <Building2 className="h-4 w-4 text-gray-500" />
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
         });
       });
     }
@@ -929,26 +922,10 @@ const AdminPayments: React.FC = () => {
                         </span>
                       </div>
                     </td>
-<<<<<<< HEAD
                     <td className="px-4 py-3">
                       <div className="flex items-center space-x-2">
                         <div className="p-1.5 bg-emerald-100 rounded-md group-hover:bg-emerald-200 transition-colors duration-200">
                           <DollarSign className="h-3 w-3 text-emerald-600" />
-=======
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        {payment.customerName || '-'}
-                      </div>
-                      {payment.customerEmail && (
-                        <div className="text-xs text-gray-500">{payment.customerEmail}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {payment.status === 'PAID' && (
-                        <div className="flex items-center space-x-2 text-green-600 bg-green-50 px-3 py-1 rounded-lg w-fit">
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span className="text-sm font-medium">Paid</span>
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                         </div>
                         <div>
                           <div className="text-xs font-bold text-gray-900">

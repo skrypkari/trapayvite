@@ -28,6 +28,7 @@ import {
   ArrowDownLeft,
   CreditCard,
   AlertCircle,
+  Lock,
   Save
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -453,12 +454,6 @@ const MerchantAnalyticsModal: React.FC<{
                       <span className="text-sm text-gray-500">Total Paid Out</span>
                       <span className="text-sm font-medium text-gray-900">
                         {statistics.totalPaidOut.toLocaleString()} USDT
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Pending Payout</span>
-                      <span className="text-sm font-medium text-orange-600">
-                        {(statistics.merchantEarnings - statistics.totalPaidOut).toLocaleString()} USDT
                       </span>
                     </div>
                   </div>
@@ -1207,7 +1202,6 @@ const AddUserModal: React.FC<{
                         'Merchant URL *',
                         <Globe className="h-5 w-5" />,
                         <input
-<<<<<<< HEAD
                           type="url"
                           value={formData.merchantUrl}
                           onChange={(e) => setFormData({ ...formData, merchantUrl: e.target.value })}
@@ -1215,105 +1209,6 @@ const AddUserModal: React.FC<{
                           placeholder="https://example.com"
                         />,
                         errors.merchantUrl
-=======
-                          type="checkbox"
-                          checked={formData.gateways.includes(gateway.id)}
-                          onChange={() => handleGatewayToggle(gateway.id)}
-                          className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                        />
-                      </div>
-                      
-                      {formData.gateways.includes(gateway.id) && (
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Commission (%)
-                            </label>
-                            <input
-                              type="number"
-                              value={formData.gatewaySettings[gateway.id]?.commission || 0}
-                              onChange={(e) => {
-                                const commission = parseFloat(e.target.value) || 0;
-                                setFormData(prev => ({
-                                  ...prev,
-                                  gatewaySettings: {
-                                    ...prev.gatewaySettings,
-                                    [gateway.id]: {
-                                      ...prev.gatewaySettings[gateway.id],
-                                      commission,
-                                      minAmount: prev.gatewaySettings[gateway.id]?.minAmount || 0,
-                                      maxAmount: prev.gatewaySettings[gateway.id]?.maxAmount || 0
-                                    }
-                                  }
-                                }));
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                              placeholder="0"
-                              min="0"
-                              max="100"
-                              step="0.01"
-                            />
-                          </div>
-                          
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Min Amount (USDT)
-                            </label>
-                            <input
-                              type="number"
-                              value={formData.gatewaySettings[gateway.id]?.minAmount || 0}
-                              onChange={(e) => {
-                                const minAmount = parseFloat(e.target.value) || 0;
-                                setFormData(prev => ({
-                                  ...prev,
-                                  gatewaySettings: {
-                                    ...prev.gatewaySettings,
-                                    [gateway.id]: {
-                                      ...prev.gatewaySettings[gateway.id],
-                                      commission: prev.gatewaySettings[gateway.id]?.commission || 0,
-                                      minAmount,
-                                      maxAmount: prev.gatewaySettings[gateway.id]?.maxAmount || 0
-                                    }
-                                  }
-                                }));
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                              placeholder="0"
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                          
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Max Amount (USDT)
-                            </label>
-                            <input
-                              type="number"
-                              value={formData.gatewaySettings[gateway.id]?.maxAmount || 0}
-                              onChange={(e) => {
-                                const maxAmount = parseFloat(e.target.value) || 0;
-                                setFormData(prev => ({
-                                  ...prev,
-                                  gatewaySettings: {
-                                    ...prev.gatewaySettings,
-                                    [gateway.id]: {
-                                      ...prev.gatewaySettings[gateway.id],
-                                      commission: prev.gatewaySettings[gateway.id]?.commission || 0,
-                                      minAmount: prev.gatewaySettings[gateway.id]?.minAmount || 0,
-                                      maxAmount
-                                    }
-                                  }
-                                }));
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
-                              placeholder="0"
-                              min="0"
-                              step="0.01"
-                            />
-                          </div>
-                        </div>
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                       )}
                     </div>
                   </div>
@@ -1614,6 +1509,7 @@ const EditUserModal: React.FC<{
   const [formData, setFormData] = useState<EditUserFormData>({
     name: user.name,
     username: user.username,
+    password: '', // ✅ NEW: Добавляем поле пароля
     telegram: user.telegram || '',
     merchantUrl: user.shopUrl,
     paymentGateways: user.paymentGateways,
@@ -1825,6 +1721,20 @@ const EditUserModal: React.FC<{
                     placeholder="Enter username"
                   />,
                   errors.username
+                )}
+
+                {renderField(
+                  'New Password',
+                  <Lock className="h-5 w-5" />,
+                  <input
+                    type="password"
+                    value={formData.password || ''}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className={`w-full px-4 py-3 border-2 ${errors.password ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
+                    placeholder="Leave empty to keep current password"
+                  />,
+                  errors.password,
+                  'Leave empty if you don\'t want to change the password'
                 )}
 
                 {renderField(

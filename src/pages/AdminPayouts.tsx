@@ -793,8 +793,6 @@ const AdminPayouts: React.FC = () => {
                   <CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
                 </div>
                 <div className="flex items-center space-x-1 text-green-600">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm font-medium">+12.5%</span>
                 </div>
               </div>
               <div>
@@ -815,8 +813,6 @@ const AdminPayouts: React.FC = () => {
                   <Clock className="h-5 w-5 md:h-6 md:w-6 text-yellow-600" />
                 </div>
                 <div className="flex items-center space-x-1 text-yellow-600">
-                  <ArrowUpRight className="h-4 w-4" />
-                  <span className="text-sm font-medium">+8.3%</span>
                 </div>
               </div>
               <div>
@@ -837,14 +833,12 @@ const AdminPayouts: React.FC = () => {
                   <ArrowDownLeft className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
                 </div>
                 <div className="flex items-center space-x-1 text-blue-600">
-                  <TrendingUp className="h-4 w-4" />
-                  <span className="text-sm font-medium">+15.2%</span>
                 </div>
               </div>
               <div>
                 <p className="text-sm text-gray-500">This Month</p>
                 <p className="text-lg md:text-2xl font-semibold text-gray-900">
-                  {stats.thisMonth.toLocaleString()} USDT
+                  {stats.thisMonth.toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Current month payouts</p>
               </div>
@@ -859,14 +853,12 @@ const AdminPayouts: React.FC = () => {
                   <Wallet className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
                 </div>
                 <div className="flex items-center space-x-1 text-purple-600">
-                  <DollarSign className="h-4 w-4" />
-                  <span className="text-sm font-medium">Available</span>
                 </div>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Payments</p>
                 <p className="text-lg md:text-2xl font-semibold text-gray-900">
-                  {stats.totalPayments.toLocaleString()} USDT
+                  {stats.totalPayments.toLocaleString()}
                 </p>
                 <p className="text-xs text-gray-400 mt-1">Total payment amount</p>
               </div>
@@ -937,11 +929,7 @@ const AdminPayouts: React.FC = () => {
                     >
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span className={startDate ? 'text-gray-900' : 'text-gray-500'}>
-<<<<<<< HEAD
                         {startDate ? format(startDate, 'dd.MM.yy') : 'Start date'}
-=======
-                        {startDate ? format(startDate, 'MMM d, yyyy') : 'Start date'}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                       </span>
                     </button>
                     <AnimatePresence>
@@ -964,11 +952,7 @@ const AdminPayouts: React.FC = () => {
                     >
                       <Calendar className="h-4 w-4 text-gray-400" />
                       <span className={endDate ? 'text-gray-900' : 'text-gray-500'}>
-<<<<<<< HEAD
                         {endDate ? format(endDate, 'dd.MM.yy') : 'End date'}
-=======
-                        {endDate ? format(endDate, 'MMM d, yyyy') : 'End date'}
->>>>>>> acb795541e4383b6cddf229106ed8cfe8f7fe284
                       </span>
                     </button>
                     <AnimatePresence>
@@ -1023,7 +1007,7 @@ const AdminPayouts: React.FC = () => {
                       <span className="text-sm font-medium text-gray-500">Total Payout</span>
                     </th>
                     <th className="text-left px-6 py-4">
-                      <span className="text-sm font-medium text-gray-500">After Commission</span>
+                      <span className="text-sm font-medium text-gray-500">Awaiting Payout</span>
                     </th>
                     <th className="text-left px-6 py-4">
                       <span className="text-sm font-medium text-gray-500">This Month</span>
