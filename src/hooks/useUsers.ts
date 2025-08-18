@@ -24,6 +24,8 @@ export interface User {
       minAmount?: number;
       maxAmount?: number;
       payoutDelay?: number;
+      // ✅ NEW: Дополнительные поля для конкретных шлюзов
+      customer?: string; // Для шлюза 1110 (Amer)
     };
   };
   // New wallets field
@@ -41,6 +43,8 @@ export interface GatewaySettings {
     minAmount: number;
     maxAmount: number;
     payoutDelay: number;
+    // ✅ NEW: Дополнительные поля для конкретных шлюзов
+    customer?: string; // Для шлюза 1110 (Amer)
   };
 }
 
@@ -176,7 +180,9 @@ const transformUser = (serverUser: any): User => {
             commission: settings.commission || 0,
             minAmount: settings.minAmount || 0,
             maxAmount: settings.maxAmount || 0,
-            payoutDelay: settings.payoutDelay || 0
+            payoutDelay: settings.payoutDelay || 0,
+            // ✅ NEW: Поддержка дополнительных полей
+            ...(settings.customer && { customer: settings.customer })
           };
         }
       });
@@ -328,12 +334,19 @@ export function useCreateUser() {
       Object.entries(user.gatewaySettings).forEach(([gatewayId, settings]) => {
         const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
         if (gatewayName) {
-          gatewaySettingsForApi[gatewayName] = { 
+          const gatewaySettings: any = { 
             commission: settings.commission,
             minAmount: settings.minAmount,
             maxAmount: settings.maxAmount,
             payoutDelay: settings.payoutDelay
           };
+          
+          // ✅ NEW: Добавляем дополнительные поля для конкретных шлюзов
+          if (settings.customer) {
+            gatewaySettings.customer = settings.customer;
+          }
+          
+          gatewaySettingsForApi[gatewayName] = gatewaySettings;
         }
       });
       
@@ -479,12 +492,19 @@ export function useUpdateUser() {
         Object.entries(data.gatewaySettings).forEach(([gatewayId, settings]) => {
           const gatewayName = convertGatewayIdsToNames([gatewayId])[0];
           if (gatewayName) {
-            gatewaySettingsForApi[gatewayName] = { 
+            const gatewaySettings: any = { 
               commission: settings.commission,
               minAmount: settings.minAmount || 0,
               maxAmount: settings.maxAmount || 0,
               payoutDelay: settings.payoutDelay || 0
             };
+            
+            // ✅ NEW: Добавляем дополнительные поля для конкретных шлюзов
+            if (settings.customer) {
+              gatewaySettings.customer = settings.customer;
+            }
+            
+            gatewaySettingsForApi[gatewayName] = gatewaySettings;
           }
         });
       }

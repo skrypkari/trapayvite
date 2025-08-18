@@ -39,6 +39,7 @@ export interface ShopPayment {
   product_name: string;
   amount: number;
   currency: string;
+  amountAfterGatewayCommissionUSDT?: number; // ✅ NEW: Amount after gateway commission in USDT
   status: 'PENDING' | 'PROCESSING' | 'PAID' | 'EXPIRED' | 'FAILED';
   created_at: string;
   updated_at?: string;

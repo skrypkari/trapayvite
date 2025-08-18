@@ -188,9 +188,6 @@ const MerchantAnalyticsModal: React.FC<{
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
@@ -659,9 +656,6 @@ const UserDetailsModal: React.FC<{
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -973,12 +967,19 @@ const AddUserModal: React.FC<{
       if (isSelected) {
         delete newGatewaySettings[gatewayId];
       } else {
-        newGatewaySettings[gatewayId] = {
+        const gatewaySettings: any = {
           commission: 2.5,
           minAmount: 0,
           maxAmount: 100000,
           payoutDelay: 0
         };
+        
+        // ✅ NEW: Добавляем поле customer для шлюза 1110 (Amer)
+        if (gatewayId === '1110') {
+          gatewaySettings.customer = '';
+        }
+        
+        newGatewaySettings[gatewayId] = gatewaySettings;
       }
 
       return {
@@ -1072,9 +1073,7 @@ const AddUserModal: React.FC<{
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleClose();
-          }}
+
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -1396,6 +1395,39 @@ const AddUserModal: React.FC<{
                                     step="1"
                                   />
                                 </div>
+
+                                {/* ✅ NEW: Дополнительное поле customer для шлюза 1110 (Amer) */}
+                                {gateway.id === '1110' && (
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      <UserIcon className="h-4 w-4 inline-block mr-1" />
+                                      Customer ID
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={formData.gatewaySettings[gateway.id]?.customer || ''}
+                                      onChange={(e) => {
+                                        const customer = e.target.value;
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          gatewaySettings: {
+                                            ...prev.gatewaySettings,
+                                            [gateway.id]: {
+                                              ...prev.gatewaySettings[gateway.id],
+                                              commission: prev.gatewaySettings[gateway.id]?.commission || 0,
+                                              minAmount: prev.gatewaySettings[gateway.id]?.minAmount || 0,
+                                              maxAmount: prev.gatewaySettings[gateway.id]?.maxAmount || 0,
+                                              payoutDelay: prev.gatewaySettings[gateway.id]?.payoutDelay || 0,
+                                              customer
+                                            }
+                                          }
+                                        }));
+                                      }}
+                                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                      placeholder="Enter customer ID"
+                                    />
+                                  </div>
+                                )}
                               </div>
                             </motion.div>
                           )}
@@ -1555,12 +1587,19 @@ const EditUserModal: React.FC<{
         delete newGatewaySettings[gatewayId];
         console.log('🔍 Removed gateway settings for:', gatewayId);
       } else {
-        newGatewaySettings[gatewayId] = {
+        const gatewaySettings: any = {
           commission: 2.5,
           minAmount: 0,
           maxAmount: 100000,
           payoutDelay: 0
         };
+        
+        // ✅ NEW: Добавляем поле customer для шлюза 1110 (Amer)
+        if (gatewayId === '1110') {
+          gatewaySettings.customer = '';
+        }
+        
+        newGatewaySettings[gatewayId] = gatewaySettings;
         console.log('🔍 Added gateway settings for:', gatewayId);
       }
 
@@ -1623,9 +1662,7 @@ const EditUserModal: React.FC<{
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleClose();
-      }}
+
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -1733,8 +1770,7 @@ const EditUserModal: React.FC<{
                     className={`w-full px-4 py-3 border-2 ${errors.password ? 'border-red-300' : 'border-gray-200'} rounded-xl focus:border-primary focus:ring-0 transition-colors text-gray-900 bg-white hover:border-gray-300`}
                     placeholder="Leave empty to keep current password"
                   />,
-                  errors.password,
-                  'Leave empty if you don\'t want to change the password'
+                  errors.password
                 )}
 
                 {renderField(
@@ -1951,6 +1987,35 @@ const EditUserModal: React.FC<{
                                 />
                               </div>
                             </div>
+
+                            {/* ✅ NEW: Дополнительное поле customer для шлюза 1110 (Amer) */}
+                            {gateway.id === '1110' && (
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  <UserIcon className="h-4 w-4 inline-block mr-1" />
+                                  Customer ID
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formData.gatewaySettings[gateway.id]?.customer || ''}
+                                  onChange={(e) => {
+                                    const customer = e.target.value;
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      gatewaySettings: {
+                                        ...prev.gatewaySettings,
+                                        [gateway.id]: {
+                                          ...prev.gatewaySettings[gateway.id],
+                                          customer
+                                        }
+                                      }
+                                    }));
+                                  }}
+                                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-0 transition-colors"
+                                  placeholder="Enter customer ID"
+                                />
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       )}

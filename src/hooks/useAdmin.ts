@@ -9,6 +9,7 @@ export interface AdminDashboardStats {
   totalUsers: number; // This will be mapped from totalShops
   totalPayments: number;
   averagePayment: number;
+  trapayEarnings: number; // ✅ NEW: TRAPAY earnings field
   dailyRevenue: { date: string; amount: number }[];
 }
 
@@ -33,7 +34,10 @@ export interface AdminStatsApiResponse {
       activeShops: number;
       totalPayments: number;
       successfulPayments: number;
+      totalAttempts: number;
       totalRevenue: number;
+      trapayEarnings: number; // ✅ NEW: TRAPAY earnings field
+      averagePaymentAmount: number;
       conversionRate: number;
       dailyRevenue: { date: string; amount: number }[];
       dailyPayments: { date: string; count: number }[];
@@ -59,6 +63,7 @@ export interface AdminPayment {
   orderId: string;
   amount: number;
   currency: string;
+  amountAfterGatewayCommissionUSDT?: number; // ✅ NEW: Amount after gateway commission in USDT
   sourceCurrency?: string;
   status: 'PENDING' | 'PROCESSING' | 'PAID' | 'EXPIRED' | 'FAILED' | 'CHARGEBACK' | 'REFUND';
   usage: 'ONCE' | 'REUSABLE';
@@ -398,7 +403,8 @@ export function useAdminDashboardStats(period: string = '30d') {
         totalRevenue: overview.totalRevenue,
         totalUsers: overview.totalShops, // Map totalShops to totalUsers
         totalPayments: overview.totalPayments,
-        averagePayment: overview.totalPayments > 0 ? overview.totalRevenue / overview.totalPayments : 0,
+        averagePayment: overview.averagePaymentAmount || (overview.totalPayments > 0 ? overview.totalRevenue / overview.totalPayments : 0),
+        trapayEarnings: overview.trapayEarnings, // ✅ NEW: Include trapayEarnings
         dailyRevenue: overview.dailyRevenue || [] // Use dailyRevenue from API response
       };
       
@@ -580,7 +586,7 @@ export function useCreatePayout() {
         const toDate = new Date(data.periodTo);
         const now = new Date();
         
-        if (fromDate >= toDate) {
+        if (fromDate > toDate) {
           throw new Error('periodFrom must be earlier than periodTo');
         }
         if (toDate > now) {

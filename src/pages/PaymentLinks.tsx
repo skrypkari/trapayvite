@@ -202,12 +202,6 @@ const GATEWAY_CURRENCIES = {
   ],
   '1111': [ // MasterCard - только карты
     { value: 'EUR', label: 'EUR - Euro' },
-    { value: 'USD', label: 'USD - US Dollar' },
-    { value: 'AUD', label: 'AUD - Australian Dollar' },
-    { value: 'CAD', label: 'CAD - Canadian Dollar' },
-    { value: 'GBP', label: 'GBP - British Pound' },
-    { value: 'NOK', label: 'NOK - Norwegian Krone' },
-    { value: 'JPY', label: 'JPY - Japanese Yen' }
   ],
   '0000': [
     { value: 'EUR', label: 'EUR - Euro' },
@@ -217,6 +211,14 @@ const GATEWAY_CURRENCIES = {
     { value: 'GBP', label: 'GBP - British Pound' },
     { value: 'NOK', label: 'NOK - Norwegian Krone' },
     { value: 'JPY', label: 'JPY - Japanese Yen' } 
+  ],
+  '1110': [ // Amer - только карты
+    { value: 'EUR', label: 'EUR - Euro' },
+    { value: 'USD', label: 'USD - US Dollar' },
+    { value: 'GBP', label: 'GBP - British Pound' },
+  ],
+  '2000': [
+    { value: 'EUR', label: 'EUR - Euro' },
   ]
 };
 
@@ -334,9 +336,6 @@ const CreateLinkModal: React.FC<{
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
-          }}
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
@@ -566,9 +565,7 @@ const LinkPreviewModal: React.FC<{
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}

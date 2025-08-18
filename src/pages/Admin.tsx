@@ -174,9 +174,9 @@ const Admin: React.FC = () => {
               <div className="flex items-center space-x-6">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-white">
-                    {statsLoading ? '...' : stats?.totalUsers.toLocaleString() || '0'}
+                    {statsLoading ? '...' : stats?.trapayEarnings.toLocaleString() || '0'}
                   </div>
-                  <div className="text-sm text-white/70">Total Users</div>
+                  <div className="text-sm text-white/70">TRAPAY Earnings</div>
                 </div>
               </div>
             </div>
@@ -224,16 +224,16 @@ const Admin: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <Users className="h-6 w-6 text-white" />
+                  <DollarSign className="h-6 w-6 text-white" />
                 </div>
 
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Total Users</p>
+                <p className="text-sm text-gray-500 mb-1">TRAPAY Earnings</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {stats.totalUsers.toLocaleString()}
+                  {stats.trapayEarnings.toLocaleString()} USDT
                 </p>
-                <p className="text-xs text-gray-400 mt-1">Active merchants</p>
+                <p className="text-xs text-gray-400 mt-1">Platform commission</p>
               </div>
             </motion.div>
 
@@ -248,7 +248,7 @@ const Admin: React.FC = () => {
 
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Total Payments</p>
+                <p className="text-sm text-gray-500 mb-1">Total Success Payments</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {stats.totalPayments.toLocaleString()}
                 </p>
@@ -267,7 +267,7 @@ const Admin: React.FC = () => {
 
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Average Payment</p>
+                <p className="text-sm text-gray-500 mb-1">Average Success Payment</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {stats.averagePayment.toFixed(2)} USDT
                 </p>

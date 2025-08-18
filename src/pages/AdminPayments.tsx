@@ -189,9 +189,6 @@ const PaymentDetailsModal: React.FC<{
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -453,6 +450,15 @@ const PaymentDetailsModal: React.FC<{
                 '', 
                 <DollarSign className="h-5 w-5" />,
                 'border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50'
+              )}
+
+              {payment.amountAfterGatewayCommissionUSDT && renderField(
+                'Amount After Commission (USDT)', 
+                `${payment.amountAfterGatewayCommissionUSDT.toFixed(2)} USDT`, 
+                false, 
+                '', 
+                <DollarSign className="h-5 w-5" />,
+                'border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100'
               )}
 
               {renderField('Created At', format(new Date(payment.createdAt), 'dd.MM.yy HH:mm'), false, '', <Calendar className="h-4 w-4" />)}

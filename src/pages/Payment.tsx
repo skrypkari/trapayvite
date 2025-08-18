@@ -113,10 +113,20 @@ const MasterCardForm: React.FC<{
   // Get browser information
   const getBrowserInfo = () => {
     const timezoneOffset = new Date().getTimezoneOffset();
+    
+    // Map screen.colorDepth to valid values accepted by the API
+    const getValidColorDepth = (depth: number): number => {
+      const validDepths = [1, 4, 8, 15, 16, 24, 32];
+      // Find the closest valid depth or default to 24
+      const closest = validDepths.reduce((prev, curr) => 
+        Math.abs(curr - depth) < Math.abs(prev - depth) ? curr : prev
+      );
+      return closest;
+    };
 
     return {
       accept_header: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      color_depth: screen.colorDepth || 24,
+      color_depth: getValidColorDepth(screen.colorDepth || 24),
       language: navigator.language || 'en-US',
       screen_height: screen.height,
       screen_width: screen.width,
@@ -126,6 +136,30 @@ const MasterCardForm: React.FC<{
       window_height: window.innerHeight,
       window_width: window.innerWidth
     };
+  };
+
+  // ✅ NEW: Luhn algorithm validation function
+  const validateLuhn = (cardNumber: string): boolean => {
+    const digits = cardNumber.replace(/\s/g, '').split('').map(Number);
+    let sum = 0;
+    let isEven = false;
+
+    // Process digits from right to left
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let digit = digits[i];
+
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+
+      sum += digit;
+      isEven = !isEven;
+    }
+
+    return sum % 10 === 0;
   };
 
   const validateForm = (): boolean => {
@@ -139,6 +173,10 @@ const MasterCardForm: React.FC<{
       errors.cardNumber = 'Invalid card number length';
     } else if (!/^\d+$/.test(cardNumber)) {
       errors.cardNumber = 'Card number must contain only digits';
+    } else if (!cardNumber.startsWith('5')) {
+      errors.cardNumber = 'Card must be a MasterCard (starting with 5)';
+    } else if (!validateLuhn(cardNumber)) {
+      errors.cardNumber = 'Invalid card number (failed Luhn check)';
     }
 
     // Expiry validation

@@ -51,6 +51,57 @@ interface PaymentInitiationResponse {
   };
 }
 
+interface CustomerGeoInfo {
+  customerIp?: string | null;
+  customerUa?: string;
+  customerCountry?: string | null;
+}
+
+// Utility functions for getting user geo info
+const getUserIP = async (): Promise<string | null> => {
+  const ipServices = [
+    'https://api.ipify.org?format=json',
+    'https://ipapi.co/json/',
+    'https://api.ip.sb/jsonip'
+  ];
+
+  for (const service of ipServices) {
+    try {
+      const response = await fetch(service);
+      const data = await response.json();
+      return data.ip || null;
+    } catch (error) {
+      console.warn(`Failed to get IP from ${service}:`, error);
+      continue;
+    }
+  }
+  
+  return null;
+};
+
+const getUserCountry = async (ip: string): Promise<string | null> => {
+  try {
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const data = await response.json();
+    return data.country_code || data.country || null;
+  } catch (error) {
+    console.warn('Failed to get country from IP:', error);
+    return null;
+  }
+};
+
+const getCustomerGeoInfo = async (): Promise<CustomerGeoInfo> => {
+  const userAgent = navigator.userAgent;
+  const userIP = await getUserIP();
+  const userCountry = userIP ? await getUserCountry(userIP) : null;
+  
+  return {
+    customerIp: userIP,
+    customerUa: userAgent,
+    customerCountry: userCountry
+  };
+};
+
 const PublicPaymentLink: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -144,9 +195,13 @@ const PublicPaymentLink: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      // Get customer geo info
+      const geoInfo = await getCustomerGeoInfo();
+      
       const response = await api.post<PaymentInitiationResponse>(`/public/payment-links/${id}/pay`, {
         customerEmail: customerEmail.trim(),
-        customerName: customerName.trim()
+        customerName: customerName.trim(),
+        ...geoInfo
       });
 
       if (response.success && response.result?.paymentUrl) {

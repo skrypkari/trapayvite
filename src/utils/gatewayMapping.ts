@@ -41,7 +41,13 @@ export const GATEWAY_ID_MAP: Record<string, string> = {
   'KLYME GB': '1010',  // ✅ Support uppercase with space
   'KLYME DE': '1100',   // ✅ Support uppercase with space
   'MasterCard': '1111',
-  'mastercard': '1111'  // ✅ Support lowercase from server
+  'mastercard': '1111',  // ✅ Support lowercase from server
+  'Amer': '1110',
+  'amer': '1110',
+  'myxspend': '2000',
+  'MyXSpend': '2000',
+  'My_X_Spend': '2000',
+  'my_x_spend': '2000'
 };
 
 // Reverse mapping for internal use
@@ -55,7 +61,9 @@ export const ID_TO_GATEWAY_MAP: Record<string, string> = {
   '1001': 'KLYME EU',
   '1010': 'KLYME GB',
   '1100': 'KLYME DE',
-  '1111': 'MasterCard'
+  '1111': 'MasterCard',
+  '1110': 'Amer',
+  '2000': 'MyXSpend'
 };
 
 // Gateway information for UI display (using IDs)
@@ -83,9 +91,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '0010': {
     id: '0010',
     name: 'Rapyd',
-    displayName: 'Gateway 0010 - Bank Card (Visa, Master, AmEx, Maestro)',
+    displayName: 'Gateway 0010 - Bank Card (Visa, Master, AmEx)',
     description: 'Global payment processing - ID: 0010',
-    features: ['Multi-currency'],
+    features: ['Cards', '3DS'],
     color: 'bg-purple-500',
     fee: '10%',
     payout: 'T+5'
@@ -159,6 +167,26 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
     color: 'bg-red-500',
     fee: '10%',
     payout: 'T+5'
+  },
+  '1110': {
+    id: '1110',
+    name: 'Amer',
+    displayName: 'Gateway 1110 - Bank Card AM (Visa, MasterCard, AmEx)',
+    description: 'Global payment processing - ID: 1110',
+    features: ['Cards', 'Multi-currency', '3DS'],
+    color: 'bg-orange-500',
+    fee: '10%',
+    payout: 'T+5',
+  },
+  '2000': {
+    id: '2000',
+    name: 'MyXSpend',
+    displayName: '2000 - Open Banking MX',
+    description: 'MyXSpend Open Banking Mexico processing - ID: 2000',
+    features: ['Open Banking', 'MXN', 'USD'],
+    color: 'bg-green-600',
+    fee: '10%',
+    payout: 'T+5',
   }
 };
 
