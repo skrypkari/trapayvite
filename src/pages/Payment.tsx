@@ -28,7 +28,8 @@ interface MasterCardFormData {
   expiryMonth: string;
   expiryYear: string;
   cvv: string;
-  fullName: string; // ✅ CHANGED: Объединили firstName и lastName в одно поле
+  firstName: string;
+  lastName: string;
   email: string;
 }
 
@@ -74,7 +75,8 @@ const MasterCardForm: React.FC<{
     expiryMonth: '',
     expiryYear: '',
     cvv: '',
-    fullName: '',
+    firstName: '',
+    lastName: '',
     email: ''
   });
   const [formErrors, setFormErrors] = useState<Partial<MasterCardFormData>>({});
@@ -89,16 +91,21 @@ const MasterCardForm: React.FC<{
     console.log('🔍 URL параметры:', { name: nameParam, email: emailParam });
 
     if (nameParam || emailParam) {
+      // Разделяем полное имя на имя и фамилию если есть
+      const nameParts = nameParam ? nameParam.trim().split(' ') : [];
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+
       setFormData(prev => ({
         ...prev,
-        fullName: nameParam || prev.fullName,
+        firstName: firstName || prev.firstName,
+        lastName: lastName || prev.lastName,
         email: emailParam || prev.email
       }));
       console.log('✅ Форма заполнена из URL параметров');
     }
   }, [urlParams]);
 
-  // Get user's IP address
   const getUserIP = async (): Promise<string> => {
     try {
       const response = await fetch('https://api.ipify.org?format=json');
@@ -110,14 +117,11 @@ const MasterCardForm: React.FC<{
     }
   };
 
-  // Get browser information
   const getBrowserInfo = () => {
     const timezoneOffset = new Date().getTimezoneOffset();
     
-    // Map screen.colorDepth to valid values accepted by the API
     const getValidColorDepth = (depth: number): number => {
       const validDepths = [1, 4, 8, 15, 16, 24, 32];
-      // Find the closest valid depth or default to 24
       const closest = validDepths.reduce((prev, curr) => 
         Math.abs(curr - depth) < Math.abs(prev - depth) ? curr : prev
       );
@@ -173,8 +177,8 @@ const MasterCardForm: React.FC<{
       errors.cardNumber = 'Invalid card number length';
     } else if (!/^\d+$/.test(cardNumber)) {
       errors.cardNumber = 'Card number must contain only digits';
-    } else if (!cardNumber.startsWith('5')) {
-      errors.cardNumber = 'Card must be a MasterCard (starting with 5)';
+    } else if (!cardNumber.startsWith('4') && !cardNumber.startsWith('5')) {
+      errors.cardNumber = 'Only Visa (starting with 4) and MasterCard (starting with 5) are accepted';
     } else if (!validateLuhn(cardNumber)) {
       errors.cardNumber = 'Invalid card number (failed Luhn check)';
     }
@@ -199,10 +203,11 @@ const MasterCardForm: React.FC<{
     }
 
     // Cardholder validation
-    if (!formData.fullName.trim()) {
-      errors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().split(' ').length < 2) {
-      errors.fullName = 'Please enter your full name (first and last name)';
+    if (!formData.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    }
+    if (!formData.lastName.trim()) {
+      errors.lastName = 'Last name is required';
     }
     if (!formData.email.trim()) {
       errors.email = 'Email is required';
@@ -256,10 +261,9 @@ const MasterCardForm: React.FC<{
       const userIP = await getUserIP();
       const browserInfo = getBrowserInfo();
 
-      // ✅ NEW: Разделяем полное имя на имя и фамилию
-      const nameParts = formData.fullName.trim().split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || nameParts[0] || ''; // Если только одно слово, используем его как фамилию тоже
+      // ✅ NEW: Используем отдельные поля имени и фамилии
+      const firstName = formData.firstName.trim();
+      const lastName = formData.lastName.trim();
 
       const requestData: MasterCardPaymentRequest = {
         cardData: {
@@ -323,7 +327,7 @@ const MasterCardForm: React.FC<{
       <div className="text-center">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Card Payment</h2>
         <p className="text-gray-600 text-sm">
-          Enter your card details to complete the payment
+          Enter your Visa or MasterCard details to complete the payment
         </p>
       </div>
 
@@ -452,26 +456,49 @@ const MasterCardForm: React.FC<{
           </h3>
 
           <div className="space-y-4">
-            {/* Full Name */}
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                id="fullName"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.fullName
-                    ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
-                  } focus:outline-none focus:ring-2`}
-                placeholder="John Doe"
-                disabled={isSubmitting}
-              />
-              {formErrors.fullName && (
-                <p className="mt-1 text-sm text-red-600">{formErrors.fullName}</p>
-              )}
+            {/* First Name and Last Name */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                  First Name *
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.firstName
+                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="John"
+                  disabled={isSubmitting}
+                />
+                {formErrors.firstName && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.firstName}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  className={`w-full px-4 py-3 rounded-xl border transition-colors ${formErrors.lastName
+                      ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
+                      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-200'
+                    } focus:outline-none focus:ring-2`}
+                  placeholder="Doe"
+                  disabled={isSubmitting}
+                />
+                {formErrors.lastName && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.lastName}</p>
+                )}
+              </div>
             </div>
 
             {/* Contact Information */}

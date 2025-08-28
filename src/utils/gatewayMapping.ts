@@ -40,14 +40,20 @@ export const GATEWAY_ID_MAP: Record<string, string> = {
   'KLYME EU': '1001',  // ✅ Support uppercase with space
   'KLYME GB': '1010',  // ✅ Support uppercase with space
   'KLYME DE': '1100',   // ✅ Support uppercase with space
-  'MasterCard': '1111',
-  'mastercard': '1111',  // ✅ Support lowercase from server
+  'visa_mastercard': '1111',
+  'Visa Mastercard': '1111',  // ✅ Support lowercase from server
+  'Visa/MasterCard': '1111',
+  'visa/mastercard': '1111',
   'Amer': '1110',
   'amer': '1110',
   'myxspend': '2000',
   'MyXSpend': '2000',
   'My_X_Spend': '2000',
-  'my_x_spend': '2000'
+  'my_x_spend': '2000',
+  'ampay': '2001',
+  'AmPay': '2001',
+  'am_pay': '2001',
+  'Am_Pay': '2001'
 };
 
 // Reverse mapping for internal use
@@ -61,9 +67,10 @@ export const ID_TO_GATEWAY_MAP: Record<string, string> = {
   '1001': 'KLYME EU',
   '1010': 'KLYME GB',
   '1100': 'KLYME DE',
-  '1111': 'MasterCard',
+  '1111': 'Visa/MasterCard',
   '1110': 'Amer',
-  '2000': 'MyXSpend'
+  '2000': 'MyXSpend',
+  '2001': 'AmPay'
 };
 
 // Gateway information for UI display (using IDs)
@@ -160,8 +167,8 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   },
   '1111': {
     id: '1111',
-    name: 'MasterCard',
-    displayName: 'Gateway 1111 - Mastercard Global',
+    name: 'Visa/MasterCard',
+    displayName: 'Gateway 1111 - Visa/MasterCard Global',
     description: 'Global payment processing - ID: 1111',
     features: ['EUR', 'USD'],
     color: 'bg-red-500',
@@ -181,10 +188,20 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '2000': {
     id: '2000',
     name: 'MyXSpend',
-    displayName: '2000 - Open Banking MX',
-    description: 'MyXSpend Open Banking Mexico processing - ID: 2000',
+    displayName: 'Gateway 2000 - Open Banking MX',
+    description: 'Open Banking processing - ID: 2000',
     features: ['Open Banking', 'MXN', 'USD'],
     color: 'bg-green-600',
+    fee: '10%',
+    payout: 'T+5',
+  },
+  '2001': {
+    id: '2001',
+    name: 'AmPay',
+    displayName: 'Gateway 2001 - Open Banking AM',
+    description: 'Open Banking processing - ID: 2001',
+    features: ['Open Banking', 'EUR', 'USD'],
+    color: 'bg-purple-600',
     fee: '10%',
     payout: 'T+5',
   }

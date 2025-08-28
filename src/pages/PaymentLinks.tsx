@@ -36,7 +36,6 @@ import {
   type PaymentLinkFilters 
 } from '../hooks/usePaymentLinks';
 
-// Gateway-specific currency options
 const GATEWAY_CURRENCIES = {
   '1000': [ // Noda
     { value: 'EUR', label: 'EUR - Euro' },
@@ -219,10 +218,12 @@ const GATEWAY_CURRENCIES = {
   ],
   '2000': [
     { value: 'EUR', label: 'EUR - Euro' },
+  ],
+  '2001': [
+    { value: 'EUR', label: 'EUR - Euro' },
   ]
 };
 
-// Криптовалюты для sourceCurrency в Gateway 0001 (Plisio)
 const cryptoCurrencyOptions = [
   { value: 'USDT_TRX', label: 'USDT TRC-20' },
   { value: 'USDT', label: 'USDT ERC-20' },
