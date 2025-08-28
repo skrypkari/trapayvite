@@ -289,7 +289,7 @@ const Admin: React.FC = () => {
             <p className="text-sm text-gray-500 mt-1">Track overall platform performance</p>
           </div>
           <div className="flex space-x-2">
-            {['7d', '30d', '90d', 'all'].map((period) => (
+            {['DAY', '7d', '30d', '90d', 'all'].map((period) => (
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
@@ -299,7 +299,7 @@ const Admin: React.FC = () => {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                {period === 'all' ? 'All Time' : period}
+                {period === 'all' ? 'All Time' : period === 'DAY' ? 'Day' : period}
               </button>
             ))}
           </div>

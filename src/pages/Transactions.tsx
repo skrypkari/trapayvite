@@ -349,6 +349,18 @@ const PaymentDetailsModal: React.FC<{
               {(payment as any).remitter_iban && renderField('IBAN', (payment as any).remitter_iban, true, 'remitter-iban', <Building2 className="h-4 w-4" />)}
               {(payment as any).card_last4 && renderField('Card Last 4', `****${(payment as any).card_last4}`, false, '', <CreditCard className="h-4 w-4" />)}
               {(payment as any).payment_method && renderField('Payment Method', (payment as any).payment_method, false, '', <CreditCard className="h-4 w-4" />)}
+                {(payment as any).payment_method && renderField(
+                  'Payment Method',
+                  ((pm => {
+                    if (pm === 'ampay') return '2001';
+                    if (pm === 'mastercard' || pm === 'visa/mastercard') return '1111';
+                    if (pm === 'myxspend') return '2000';
+                    return pm;
+                  })((payment as any).payment_method)),
+                  false,
+                  '',
+                  <CreditCard className="h-4 w-4" />
+                )}
               {renderField('Product Name', payment.product_name, false, '', <Receipt className="h-4 w-4" />)}
             </div>
           </div>
@@ -769,50 +781,55 @@ const Transactions: React.FC = () => {
                     <td className="px-4 py-3">
                       <div className="flex items-center space-x-2">
                         {/* Payment Method Display */}
-                        {payment.gateway === '0001' ? (
-                          // Plisio - Crypto
-                          <>
-                            <div className="p-1.5 bg-orange-100 rounded-md group-hover:bg-orange-200 transition-colors duration-200">
-                              <Bitcoin className="h-3 w-3 text-orange-600" />
-                            </div>
-                            <span className="text-xs font-medium text-gray-900 bg-orange-100 px-2 py-1 rounded border border-orange-200">
-                              Crypto
-                            </span>
-                          </>
-                        ) : (payment as any).remitter_iban ? (
-                          // Bank Transfer - IBAN
-                          <>
-                            <div className="p-1.5 bg-blue-100 rounded-md group-hover:bg-blue-200 transition-colors duration-200">
-                              <Building2 className="h-3 w-3 text-blue-600" />
-                            </div>
-                            <span className="text-xs font-medium text-gray-900 bg-blue-100 px-2 py-1 rounded border border-blue-200">
-                              {(payment as any).remitter_iban.length > 8 
-                                ? `${(payment as any).remitter_iban.slice(0, 8)}...` 
-                                : (payment as any).remitter_iban
-                              }
-                            </span>
-                          </>
-                        ) : (payment as any).card_last4 ? (
-                          // Card Payment - Last 4 digits
-                          <>
-                            <div className="p-1.5 bg-green-100 rounded-md group-hover:bg-green-200 transition-colors duration-200">
-                              <CreditCard className="h-3 w-3 text-green-600" />
-                            </div>
-                            <span className="text-xs font-medium text-gray-900 bg-green-100 px-2 py-1 rounded border border-green-200">
-                              ****{(payment as any).card_last4}
-                            </span>
-                          </>
-                        ) : (
-                          // Default - Payment Method or N/A
-                          <>
-                            <div className="p-1.5 bg-gray-100 rounded-md group-hover:bg-gray-200 transition-colors duration-200">
-                              <CreditCard className="h-3 w-3 text-gray-600" />
-                            </div>
-                            <span className="text-xs font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded border border-gray-200">
-                              {(payment as any).payment_method || 'N/A'}
-                            </span>
-                          </>
-                        )}
+                          {payment.gateway === '0001' ? (
+                            // Plisio - Crypto
+                            <>
+                              <div className="p-1.5 bg-orange-100 rounded-md group-hover:bg-orange-200 transition-colors duration-200">
+                                <Bitcoin className="h-3 w-3 text-orange-600" />
+                              </div>
+                              <span className="text-xs font-medium text-gray-900 bg-orange-100 px-2 py-1 rounded border border-orange-200">
+                                Crypto
+                              </span>
+                            </>
+                          ) : (payment as any).remitter_iban ? (
+                            // Bank Transfer - IBAN
+                            <>
+                              <div className="p-1.5 bg-blue-100 rounded-md group-hover:bg-blue-200 transition-colors duration-200">
+                                <Building2 className="h-3 w-3 text-blue-600" />
+                              </div>
+                              <span className="text-xs font-medium text-gray-900 bg-blue-100 px-2 py-1 rounded border border-blue-200">
+                                {(payment as any).remitter_iban.length > 8 
+                                  ? `${(payment as any).remitter_iban.slice(0, 8)}...` 
+                                  : (payment as any).remitter_iban
+                                }
+                              </span>
+                            </>
+                          ) : (payment as any).card_last4 ? (
+                            // Card Payment - Last 4 digits
+                            <>
+                              <div className="p-1.5 bg-green-100 rounded-md group-hover:bg-green-200 transition-colors duration-200">
+                                <CreditCard className="h-3 w-3 text-green-600" />
+                              </div>
+                              <span className="text-xs font-medium text-gray-900 bg-green-100 px-2 py-1 rounded border border-green-200">
+                                ****{(payment as any).card_last4}
+                              </span>
+                            </>
+                          ) : (
+                            // Default - Payment Method or N/A
+                            <>
+                              <div className="p-1.5 bg-gray-100 rounded-md group-hover:bg-gray-200 transition-colors duration-200">
+                                <CreditCard className="h-3 w-3 text-gray-600" />
+                              </div>
+                              <span className="text-xs font-medium text-gray-900 bg-gray-100 px-2 py-1 rounded border border-gray-200">
+                                {((pm => {
+                                  if (pm === 'ampay') return '2001';
+                                  if (pm === 'mastercard') return '1111';
+                                  if (pm === 'myxspend') return '2000';
+                                  return pm || 'N/A';
+                                })((payment as any).payment_method))}
+                              </span>
+                            </>
+                          )}
                       </div>
                     </td>
                     <td className="px-4 py-3">

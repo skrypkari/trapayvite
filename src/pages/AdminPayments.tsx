@@ -642,15 +642,19 @@ const AdminPayments: React.FC = () => {
 
   const gatewayOptions = [
     { value: 'all', label: 'All Gateways' },
+    { value: '0000', label: 'Test Gateway' },
     { value: '0001', label: 'Plisio' },
     { value: '0010', label: 'Rapyd' },
     { value: '0100', label: 'CoinToPay' },
     { value: '0101', label: 'CoinToPay2' },
     { value: '1000', label: 'Noda' },
-    { value: '1001', label: 'KLYME_EU' },
-    { value: '1010', label: 'KLYME_GB' },
-    { value: '1100', label: 'KLYME_DE' },
-    { value: '1111', label: 'MasterCard' },
+    { value: '1001', label: 'KLYME EU' },
+    { value: '1010', label: 'KLYME GB' },
+    { value: '1100', label: 'KLYME DE' },
+    { value: '1111', label: 'Visa/MasterCard' },
+    { value: '1110', label: 'Amer' },
+    { value: '2000', label: 'MyXSpend' },
+    { value: '2001', label: 'AmPay' }
   ];
 
   const currencyOptions = [
@@ -681,7 +685,7 @@ const AdminPayments: React.FC = () => {
       merchants.forEach(merchant => {
         options.push({
           value: merchant.id,
-          label: merchant.username, // ✅ Show only username as requested
+          label: merchant.name, // ✅ Теперь показываем бренд
         });
       });
     }
