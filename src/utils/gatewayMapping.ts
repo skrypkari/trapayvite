@@ -108,9 +108,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '0100': {
     id: '0100',
     name: 'CoinToPay',
-    displayName: 'Gateway 0100 - Open Banking (EU) + SEPA',
+    displayName: 'Gateway 0100 - Open Banking CP (EU)',
     description: 'Digital payment solutions - ID: 0100',
-    features: ['EUR', 'SEPA'],
+    features: ['EUR', 'SEPA', 'INSTANT', 'IBAN'],
     color: 'bg-green-500',
     fee: '10%',
     payout: 'T+5'
@@ -118,9 +118,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '0101': {
     id: '0101',
     name: 'CoinToPay2',
-    displayName: 'Gateway 0101 - Open Banking 2 (EU) + SEPA',
-    description: 'Enhanced digital payment solutions - ID: 0101',
-    features: ['EUR', 'SEPA'],
+    displayName: 'Gateway 0101 - Open Banking CP2 (EU)',
+    description: 'Digital payment solutions - ID: 0101',
+    features: ['EUR', 'SEPA', 'INSTANT', 'IBAN'],
     color: 'bg-teal-500',
     fee: '10%',
     payout: 'T+5'
@@ -128,9 +128,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '1000': {
     id: '1000',
     name: 'Noda',
-    displayName: 'Gateway 1000 - Open Banking (EU)',
-    description: 'Modern payment infrastructure - ID: 1000',
-    features: ['EUR', 'SEPA'],
+    displayName: 'Gateway 1000 - Open Banking N (EU)',
+    description: 'Bank transfer infrastructure - ID: 1000',
+    features: ['EUR', 'SEPA', 'INSTANT'],
     color: 'bg-blue-500',
     fee: '10%',
     payout: 'T+5'
@@ -138,9 +138,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '1001': {
     id: '1001',
     name: 'KLYME_EU',
-    displayName: 'Gateway 1001 - Open Banking (EU) KL',
+    displayName: 'Gateway 1001 - Open Banking KL (EU)',
     description: 'Bank transfer infrastructure - ID: 1001',
-    features: ['EUR', 'SEPA'],
+    features: ['EUR', 'SEPA', 'INSTANT'],
     color: 'bg-indigo-500',
     fee: '10%',
     payout: 'T+5'
@@ -148,7 +148,7 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '1010': {
     id: '1010',
     name: 'KLYME_GB',
-    displayName: 'Gateway 1010 - Open Banking (GB) KL',
+    displayName: 'Gateway 1010 - Open Banking KL (GB)',
     description: 'Bank transfer infrastructure - ID: 1010',
     features: ['GBP', 'SEPA', 'Faster Payments'],
     color: 'bg-cyan-500',
@@ -158,9 +158,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '1100': {
     id: '1100',
     name: 'KLYME_DE',
-    displayName: 'Gateway 1100 - Open Banking (DE) KL',
+    displayName: 'Gateway 1100 - Open Banking KL (DE)',
     description: 'Bank transfer infrastructure - ID: 1100',
-    features: ['EUR', 'SEPA'],
+    features: ['EUR', 'SEPA', 'INSTANT'],
     color: 'bg-teal-500',
     fee: '10%',
     payout: 'T+5'
@@ -168,9 +168,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '1111': {
     id: '1111',
     name: 'Visa/MasterCard',
-    displayName: 'Gateway 1111 - Visa/MasterCard Global',
-    description: 'Global payment processing - ID: 1111',
-    features: ['EUR', 'USD'],
+    displayName: 'Gateway 1111 - Visa/MasterCard EU',
+    description: 'Cards payment processing - ID: 1111',
+    features: ['CARDS', 'EUR', '3DS'],
     color: 'bg-red-500',
     fee: '10%',
     payout: 'T+5'
@@ -188,9 +188,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '2000': {
     id: '2000',
     name: 'MyXSpend',
-    displayName: 'Gateway 2000 - Open Banking MX',
-    description: 'Open Banking processing - ID: 2000',
-    features: ['Open Banking', 'MXN', 'USD'],
+    displayName: 'Gateway 2000 - Open Banking MX (EU)',
+    description: 'Bank transfer infrastructure - ID: 2000',
+    features: ['EUR', 'SEPA', 'INSTANT', 'IBAN'],
     color: 'bg-green-600',
     fee: '10%',
     payout: 'T+5',
@@ -198,9 +198,9 @@ export const GATEWAY_INFO: Record<string, GatewayInfo> = {
   '2001': {
     id: '2001',
     name: 'AmPay',
-    displayName: 'Gateway 2001 - Open Banking AM',
-    description: 'Open Banking processing - ID: 2001',
-    features: ['Open Banking', 'EUR', 'USD'],
+    displayName: 'Gateway 2001 - Open Banking AM (EU)',
+    description: 'Bank transfer infrastructure - ID: 2001',
+    features: ['EUR', 'SEPA', 'INSTANT'],
     color: 'bg-purple-600',
     fee: '10%',
     payout: 'T+5',
